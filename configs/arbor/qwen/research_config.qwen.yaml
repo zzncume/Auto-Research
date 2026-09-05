@@ -1,0 +1,6 @@
+llm:
+  provider: litellm
+  model: qwen3.8-max
+  api_key: ${DASHSCOPE_API_KEY}
+  base_url: https://ws-7nvj28bhf31rri5v.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+  meta_model: qwen3.8-max

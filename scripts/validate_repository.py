@@ -18,6 +18,8 @@ EXPECTED_KEY_ENV = {
     "qwen": "DASHSCOPE_API_KEY",
     "gpt": "OPENAI_API_KEY",
 }
+QWEN_MODEL = "qwen3.8-max"
+QWEN_BASE_URL = "https://ws-7nvj28bhf31rri5v.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
 SECRET_PATTERNS = (
     re.compile(r"\bsk-[A-Za-z0-9_-]{12,}"),
     re.compile(r"-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----"),
@@ -56,6 +58,18 @@ def main() -> int:
                 fail(f"identity mismatch: {path.relative_to(ROOT)}", errors)
             if data.get("api_key_env") != EXPECTED_KEY_ENV[provider]:
                 fail(f"wrong key env: {path.relative_to(ROOT)}", errors)
+            expected_status = "prepared" if provider == "qwen" else "deferred"
+            if data.get("status") != expected_status:
+                fail(f"wrong provider status: {path.relative_to(ROOT)}", errors)
+            if provider == "qwen":
+                if data.get("model") != QWEN_MODEL or data.get("base_url") != QWEN_BASE_URL:
+                    fail(f"Qwen model or endpoint drift: {path.relative_to(ROOT)}", errors)
+                stage_models = data.get("stage_models", {})
+                if any(value != QWEN_MODEL for value in stage_models.values()):
+                    fail(f"mixed auxiliary model in {path.relative_to(ROOT)}", errors)
+                reviewer = data.get("reviewer")
+                if reviewer and reviewer.get("model") != QWEN_MODEL:
+                    fail(f"mixed reviewer model in {path.relative_to(ROOT)}", errors)
             execution = data.get("execution", {})
             if execution.get("budget_policy") != "no_hard_cap":
                 fail(f"budget policy drift: {path.relative_to(ROOT)}", errors)

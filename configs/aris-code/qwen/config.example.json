@@ -2,11 +2,13 @@
   "schema_version": 1,
   "system": "aris-code",
   "provider": "qwen",
-  "model": "FILL_MODEL_ID",
-  "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "status": "prepared",
+  "model": "qwen3.8-max",
+  "base_url": "https://ws-7nvj28bhf31rri5v.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
   "api_key_env": "DASHSCOPE_API_KEY",
-  "support": "native",
+  "support": "conditional_native",
   "adapter": null,
-  "reviewer": {"provider": "FILL_FIXED_REVIEWER_PROVIDER", "model": "FILL_FIXED_REVIEWER_MODEL"},
+  "reviewer": {"provider": "custom-openai-compatible", "model": "qwen3.8-max", "base_url": "https://ws-7nvj28bhf31rri5v.cn-beijing.maas.aliyuncs.com/compatible-mode/v1", "api_key_env": "DASHSCOPE_API_KEY"},
+  "protocol_deviation": "Same-model review follows the benchmark policy but disables ARIS's recommended cross-family reviewer invariant.",
   "execution": {"budget_policy": "no_hard_cap", "record_usage": true, "record_failed_requests": true}
 }

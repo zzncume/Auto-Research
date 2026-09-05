@@ -2,11 +2,12 @@
   "schema_version": 1,
   "system": "arbor",
   "provider": "qwen",
-  "model": "FILL_MODEL_ID",
-  "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "status": "prepared",
+  "model": "qwen3.8-max",
+  "base_url": "https://ws-7nvj28bhf31rri5v.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
   "api_key_env": "DASHSCOPE_API_KEY",
   "support": "native",
   "adapter": null,
-  "native_settings": {"provider": "auto", "reasoning_effort": "FILL_AFTER_MODEL_SELECTION"},
+  "native_settings": {"provider": "litellm", "meta_model": "qwen3.8-max", "reasoning_effort": null},
   "execution": {"budget_policy": "no_hard_cap", "record_usage": true, "record_failed_requests": true}
 }

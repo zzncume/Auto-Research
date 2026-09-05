@@ -1,0 +1,212 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Auto-Research <autoresearch@localhost>
+Date: Sat, 5 Sep 2026 23:05:54 +0800
+Subject: [PATCH] adapter: add Qwen OpenAI-compatible route to AI-Scientist v1
+
+---
+ ai_scientist/llm.py             | 68 ++++++++++++++++++++++++++++++++-
+ ai_scientist/perform_writeup.py |  9 +----
+ launch_scientist.py             | 28 ++++----------
+ 3 files changed, 75 insertions(+), 30 deletions(-)
+
+diff --git a/ai_scientist/llm.py b/ai_scientist/llm.py
+index 27c9eee..9f8d870 100644
+--- a/ai_scientist/llm.py
++++ b/ai_scientist/llm.py
+@@ -11,6 +11,8 @@ from google.generativeai.types import GenerationConfig
+ MAX_NUM_TOKENS = 4096
+ 
+ AVAILABLE_LLMS = [
++    # Qwen through an OpenAI-compatible endpoint
++    "qwen3.8-max",
+     # Anthropic models
+     "claude-3-5-sonnet-20240620",
+     "claude-3-5-sonnet-20241022",
+@@ -62,6 +64,42 @@ AVAILABLE_LLMS = [
+ ]
+ 
+ 
++def is_openai_compatible_model(model):
++    """Return whether this run uses the configured OpenAI-compatible endpoint."""
++    return os.environ.get("AI_SCIENTIST_OPENAI_COMPATIBLE") == "1" or model.startswith("qwen")
++
++
++def extract_message_text(content):
++    """Normalize OpenAI-compatible response content and reject empty responses."""
++    if isinstance(content, str):
++        text = content.strip()
++    elif isinstance(content, list):
++        parts = []
++        for block in content:
++            value = block.get("text") if isinstance(block, dict) else getattr(block, "text", None)
++            if value:
++                parts.append(value)
++        text = "\n".join(parts).strip()
++    else:
++        text = ""
++    if not text:
++        raise ValueError("The OpenAI-compatible endpoint returned empty message content.")
++    return text
++
++
++def aider_model_name(model):
++    """Map a configured model to Aider's provider-qualified model name."""
++    if is_openai_compatible_model(model):
++        return f"openai/{model}"
++    if model == "deepseek-coder-v2-0724":
++        return "deepseek/deepseek-coder"
++    if model == "deepseek-reasoner":
++        return "deepseek/deepseek-reasoner"
++    if model == "llama3.1-405b":
++        return "openrouter/meta-llama/llama-3.1-405b-instruct"
++    return model
++
++
+ # Get N responses from a single message, used for ensembling.
+ @backoff.on_exception(backoff.expo, (openai.RateLimitError, openai.APITimeoutError))
+ def get_batch_responses_from_llm(
+@@ -77,7 +115,16 @@ def get_batch_responses_from_llm(
+     if msg_history is None:
+         msg_history = []
+ 
+-    if 'gpt' in model:
++    if is_openai_compatible_model(model):
++        content, new_msg_history = [], []
++        for _ in range(n_responses):
++            c, hist = get_response_from_llm(
++                msg, client, model, system_message, print_debug=False,
++                msg_history=msg_history, temperature=temperature,
++            )
++            content.append(c)
++            new_msg_history.append(hist)
++    elif 'gpt' in model:
+         new_msg_history = msg_history + [{"role": "user", "content": msg}]
+         response = client.chat.completions.create(
+             model=model,
+@@ -183,6 +230,16 @@ def get_response_from_llm(
+                 ],
+             }
+         ]
++    elif is_openai_compatible_model(model):
++        new_msg_history = msg_history + [{"role": "user", "content": msg}]
++        response = client.chat.completions.create(
++            model=model,
++            messages=[{"role": "system", "content": system_message}, *new_msg_history],
++            temperature=temperature,
++            max_tokens=MAX_NUM_TOKENS,
++        )
++        content = extract_message_text(response.choices[0].message.content)
++        new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
+     elif 'gpt' in model:
+         new_msg_history = msg_history + [{"role": "user", "content": msg}]
+         response = client.chat.completions.create(
+@@ -315,7 +372,14 @@ def extract_json_between_markers(llm_output):
+ 
+ 
+ def create_client(model):
+-    if model.startswith("claude-"):
++    if is_openai_compatible_model(model):
++        api_key = os.environ.get("AI_SCIENTIST_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
++        base_url = os.environ.get("AI_SCIENTIST_BASE_URL")
++        if not api_key or not base_url:
++            raise ValueError("Set DASHSCOPE_API_KEY and AI_SCIENTIST_BASE_URL for this model.")
++        print(f"Using configured OpenAI-compatible API with model {model}.")
++        return openai.OpenAI(api_key=api_key, base_url=base_url), model
++    elif model.startswith("claude-"):
+         print(f"Using Anthropic API with model {model}.")
+         return anthropic.Anthropic(), model
+     elif model.startswith("bedrock") and "claude" in model:
+diff --git a/ai_scientist/perform_writeup.py b/ai_scientist/perform_writeup.py
+index 8fe07cb..fb44c2b 100644
+--- a/ai_scientist/perform_writeup.py
++++ b/ai_scientist/perform_writeup.py
+@@ -8,7 +8,7 @@ import subprocess
+ from typing import Optional, Tuple
+ 
+ from ai_scientist.generate_ideas import search_for_papers
+-from ai_scientist.llm import get_response_from_llm, extract_json_between_markers, create_client, AVAILABLE_LLMS
++from ai_scientist.llm import get_response_from_llm, extract_json_between_markers, create_client, AVAILABLE_LLMS, aider_model_name
+ 
+ 
+ # GENERATE LATEX
+@@ -556,12 +556,7 @@ if __name__ == "__main__":
+         raise ValueError(f"Idea {idea_name} not found")
+     fnames = [exp_file, writeup_file, notes]
+     io = InputOutput(yes=True, chat_history_file=f"{folder_name}/{idea_name}_aider.txt")
+-    if args.model == "deepseek-coder-v2-0724":
+-        main_model = Model("deepseek/deepseek-coder")
+-    elif args.model == "llama3.1-405b":
+-        main_model = Model("openrouter/meta-llama/llama-3.1-405b-instruct")
+-    else:
+-        main_model = Model(model)
++    main_model = Model(aider_model_name(model))
+     coder = Coder.create(
+         main_model=main_model,
+         fnames=fnames,
+diff --git a/launch_scientist.py b/launch_scientist.py
+index 2fe7a49..f25627f 100644
+--- a/launch_scientist.py
++++ b/launch_scientist.py
+@@ -14,7 +14,7 @@ from aider.models import Model
+ from datetime import datetime
+ 
+ from ai_scientist.generate_ideas import generate_ideas, check_idea_novelty
+-from ai_scientist.llm import create_client, AVAILABLE_LLMS
++from ai_scientist.llm import create_client, AVAILABLE_LLMS, aider_model_name
+ from ai_scientist.perform_experiments import perform_experiments
+ from ai_scientist.perform_review import perform_review, load_paper, perform_improvement
+ from ai_scientist.perform_writeup import perform_writeup, generate_latex
+@@ -198,14 +198,7 @@ def do_idea(
+         io = InputOutput(
+             yes=True, chat_history_file=f"{folder_name}/{idea_name}_aider.txt"
+         )
+-        if model == "deepseek-coder-v2-0724":
+-            main_model = Model("deepseek/deepseek-coder")
+-        elif model == "deepseek-reasoner":
+-            main_model = Model("deepseek/deepseek-reasoner")
+-        elif model == "llama3.1-405b":
+-            main_model = Model("openrouter/meta-llama/llama-3.1-405b-instruct")
+-        else:
+-            main_model = Model(model)
++        main_model = Model(aider_model_name(model))
+         coder = Coder.create(
+             main_model=main_model,
+             fnames=fnames,
+@@ -234,14 +227,7 @@ def do_idea(
+         if writeup == "latex":
+             writeup_file = osp.join(folder_name, "latex", "template.tex")
+             fnames = [exp_file, writeup_file, notes]
+-            if model == "deepseek-coder-v2-0724":
+-                main_model = Model("deepseek/deepseek-coder")
+-            elif model == "deepseek-reasoner":
+-                main_model = Model("deepseek/deepseek-reasoner")
+-            elif model == "llama3.1-405b":
+-                main_model = Model("openrouter/meta-llama/llama-3.1-405b-instruct")
+-            else:
+-                main_model = Model(model)
++            main_model = Model(aider_model_name(model))
+             coder = Coder.create(
+                 main_model=main_model,
+                 fnames=fnames,
+@@ -267,8 +253,8 @@ def do_idea(
+                 paper_text = load_paper(f"{folder_name}/{idea['Name']}.pdf")
+                 review = perform_review(
+                     paper_text,
+-                    model="gpt-4o-2024-05-13",
+-                    client=openai.OpenAI(),
++                    model=client_model,
++                    client=client,
+                     num_reflections=5,
+                     num_fs_examples=1,
+                     num_reviews_ensemble=5,
+@@ -293,8 +279,8 @@ def do_idea(
+                 paper_text = load_paper(f"{folder_name}/{idea['Name']}_improved.pdf")
+                 review = perform_review(
+                     paper_text,
+-                    model="gpt-4o-2024-05-13",
+-                    client=openai.OpenAI(),
++                    model=client_model,
++                    client=client,
+                     num_reflections=5,
+                     num_fs_examples=1,
+                     num_reviews_ensemble=5,

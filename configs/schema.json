@@ -5,6 +5,7 @@
   "required": ["schema_version", "system", "provider", "model", "base_url", "api_key_env", "support", "execution"],
   "properties": {
     "schema_version": {"const": 1},
+    "status": {"enum": ["prepared", "deferred"]},
     "system": {"enum": ["ai-scientist-v1", "ai-scientist-v2", "arbor", "aris-code"]},
     "provider": {"enum": ["deepseek", "qwen", "gpt"]},
     "model": {"type": "string", "minLength": 1},

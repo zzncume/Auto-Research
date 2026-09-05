@@ -2,6 +2,7 @@
   "schema_version": 1,
   "system": "ai-scientist-v2",
   "provider": "deepseek",
+  "status": "deferred",
   "model": "FILL_MODEL_ID",
   "base_url": "https://api.deepseek.com",
   "api_key_env": "DEEPSEEK_API_KEY",

@@ -15,8 +15,10 @@ assets, or unfiltered run logs.
 - Official SAM 3D Objects and its checkpoints have passed the upstream demo.
 - The 4 x 3 provider matrix is represented under `configs/`.
 - Provider compatibility has been audited against the deployed official source.
-- AI-Scientist v1/v2 require minimal, documented transport adapters for some routes;
-  these adapters must not change research logic or prompts.
+- Qwen is the active first provider (`qwen3.8-max`); DeepSeek and GPT are deferred.
+- Minimal, reviewable Qwen transport patches are included for AI-Scientist v1/v2.
+  They route every model-calling stage to the same configured model and do not
+  change the research goal or scientific search logic.
 - API credentials are intentionally absent.
 
 ## Repository versus runtime assets
@@ -33,18 +35,19 @@ assets, or unfiltered run logs.
 
 ## Before a formal run
 
-1. Replace `FILL_MODEL_ID` in the selected config with the exact served model ID.
-2. Export the API key named by `api_key_env` from a protected local secret file.
-3. Resolve every `requires_adapter` entry and record the patch commit.
+1. Copy `secrets.example/qwen.env.example` outside the repository and fill the key.
+2. Export the protected environment file for the selected run.
+3. Apply and verify the matching adapter patch in an isolated runtime copy.
 4. Freeze the protocol and tag the repository (for example, `protocol-v1.0`).
 5. Run `python scripts/validate_repository.py`.
 6. Create an immutable run directory with `python scripts/new_run.py --config ...`.
 
 See `docs/api-compatibility.md`, `docs/experiment-protocol.md`, and
-`docs/reproducibility.md` before starting paid API experiments.
+`docs/reproducibility.md` before starting paid API experiments. Exact key-loading and
+smoke-test steps are in `docs/qwen-setup.md`.
 
 ## License
 
-The license for this benchmark repository has not yet been selected. Upstream
-projects retain their own licenses; see `THIRD_PARTY.md`. Do not assume that this
-repository's future license will relicense any upstream code, weights, or data.
+Original harness code and documentation in this repository are licensed under
+Apache-2.0. Upstream projects retain their own licenses; see `THIRD_PARTY.md`.
+This license does not relicense upstream code, weights, datasets, or checkpoints.

@@ -16,6 +16,8 @@ new run IDs rather than overwriting earlier attempts.
 
 ## Provider controls
 
+- Run one provider round at a time. Qwen is first; DeepSeek and GPT remain deferred.
+- Within a run, route every auxiliary role to the same model as the main model.
 - Record exact provider, endpoint class, served model ID, and response model ID.
 - Record all executor and auxiliary/reviewer models.
 - Do not impose a hard monetary cap; record successful, failed, and retried calls.

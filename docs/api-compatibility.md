@@ -11,6 +11,19 @@ it does not guarantee that every future model accepts legacy request parameters.
 | Arbor | Native `openai-responses` route. | Native `openai-chat` route with custom base URL. | Native OpenAI-compatible route; official example uses DashScope. |
 | ARIS-Code v0.4.24 | Native OpenAI executor. | Native guided setup / compatible provider route. | Native guided setup / custom OpenAI-compatible provider route. |
 
+## Active Qwen route
+
+The first experiment round uses `qwen3.8-max` at the workspace-scoped
+OpenAI-compatible endpoint recorded in the Qwen configs. For each system, every
+model-calling role uses that same served model: executor, reviewer, write-up,
+citation, summarizer, node selector, and VLM where applicable. DeepSeek and GPT
+remain `deferred` until the Qwen round is complete.
+
+The API key is never stored in Git. It is read from `DASHSCOPE_API_KEY` through the
+protected local environment template. Qwen prices are not embedded in the adapter;
+token usage is recorded and monetary cost remains `pricing_not_configured` until a
+verified billing rate is supplied.
+
 ## Important multi-stage behavior
 
 AI-Scientist v1 selects a main model but contains GPT-specific review calls in the
@@ -25,9 +38,11 @@ cannot accept images, the protocol must either choose a separately reported, fix
 VLM for every v2 cell or disable that stage consistently. Treating a text-only model
 as a drop-in VLM is not an API adapter and would invalidate the comparison.
 
-ARIS-Code intentionally separates Executor and Reviewer. For an executor comparison,
-the Reviewer provider/model must be frozen across all three ARIS runs and recorded.
-Changing both simultaneously confounds the result.
+ARIS-Code intentionally separates Executor and Reviewer. Under the present
+single-model policy, both roles use the current provider/model within a run. This
+compares complete systems under one-model operation rather than isolating only the
+executor effect. It is also an explicit deviation from ARIS's recommended
+cross-family reviewer invariant, so ARIS results must be labelled accordingly.
 
 ## Adapter policy
 
