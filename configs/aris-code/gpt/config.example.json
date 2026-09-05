@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "system": "aris-code",
+  "provider": "gpt",
+  "model": "FILL_MODEL_ID",
+  "base_url": "https://api.openai.com/v1",
+  "api_key_env": "OPENAI_API_KEY",
+  "support": "native",
+  "adapter": null,
+  "reviewer": {"provider": "FILL_FIXED_REVIEWER_PROVIDER", "model": "FILL_FIXED_REVIEWER_MODEL"},
+  "execution": {"budget_policy": "no_hard_cap", "record_usage": true, "record_failed_requests": true}
+}

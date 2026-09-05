@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "system": "arbor",
+  "provider": "gpt",
+  "model": "FILL_MODEL_ID",
+  "base_url": "https://api.openai.com/v1",
+  "api_key_env": "OPENAI_API_KEY",
+  "support": "native",
+  "adapter": null,
+  "native_settings": {"provider": "openai-responses", "reasoning_effort": "FILL_AFTER_MODEL_SELECTION"},
+  "execution": {"budget_policy": "no_hard_cap", "record_usage": true, "record_failed_requests": true}
+}

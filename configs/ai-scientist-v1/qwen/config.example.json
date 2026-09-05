@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "system": "ai-scientist-v1",
+  "provider": "qwen",
+  "model": "FILL_MODEL_ID",
+  "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "api_key_env": "DASHSCOPE_API_KEY",
+  "support": "requires_adapter",
+  "adapter": "adapters/ai_scientist_v1_openai_compatible.patch",
+  "stage_models": {"main": "FILL_MODEL_ID", "review": "FILL_POLICY_BEFORE_RUN"},
+  "execution": {"budget_policy": "no_hard_cap", "record_usage": true, "record_failed_requests": true}
+}

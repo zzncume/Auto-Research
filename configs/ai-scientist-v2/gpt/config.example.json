@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "system": "ai-scientist-v2",
+  "provider": "gpt",
+  "model": "FILL_MODEL_ID",
+  "base_url": "https://api.openai.com/v1",
+  "api_key_env": "OPENAI_API_KEY",
+  "support": "conditional_native",
+  "adapter": null,
+  "stage_models": {"main": "FILL_MODEL_ID", "aggregate_plots": "FILL_MODEL_ID", "writeup": "FILL_MODEL_ID", "citation": "FILL_MODEL_ID", "writeup_small": "FILL_MODEL_ID", "review": "FILL_MODEL_ID"},
+  "execution": {"budget_policy": "no_hard_cap", "record_usage": true, "record_failed_requests": true}
+}

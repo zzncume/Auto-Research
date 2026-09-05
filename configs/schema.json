@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Auto-Research provider cell",
+  "type": "object",
+  "required": ["schema_version", "system", "provider", "model", "base_url", "api_key_env", "support", "execution"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "system": {"enum": ["ai-scientist-v1", "ai-scientist-v2", "arbor", "aris-code"]},
+    "provider": {"enum": ["deepseek", "qwen", "gpt"]},
+    "model": {"type": "string", "minLength": 1},
+    "base_url": {"type": "string", "minLength": 1},
+    "api_key_env": {"enum": ["DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY", "OPENAI_API_KEY"]},
+    "support": {"enum": ["native", "conditional_native", "requires_adapter"]},
+    "adapter": {"type": ["string", "null"]},
+    "stage_models": {"type": "object"},
+    "reviewer": {"type": ["object", "null"]},
+    "execution": {
+      "type": "object",
+      "required": ["budget_policy", "record_usage", "record_failed_requests"],
+      "properties": {
+        "budget_policy": {"const": "no_hard_cap"},
+        "record_usage": {"const": true},
+        "record_failed_requests": {"const": true}
+      }
+    }
+  },
+  "additionalProperties": true
+}

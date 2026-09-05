@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-09-05",
+  "components": [
+    {
+      "id": "ai-scientist-v1",
+      "repository": "https://github.com/SakanaAI/AI-Scientist",
+      "revision": "1de1dbc1f4ee2c5f61e9c94348d55eb51d7fa2eb",
+      "source_archive_sha256": "d5d9c92aae6e4d8a5c03ba4c0365f325058097636fb73afb9b404e9e9f9d3ec0",
+      "license": "AI Scientist Source Code License 1.0"
+    },
+    {
+      "id": "ai-scientist-v2",
+      "repository": "https://github.com/SakanaAI/AI-Scientist-v2",
+      "revision": "96bd51617cfdbb494a9fc283af00fe090edfae48",
+      "source_archive_sha256": "cfa62278dc7b48efe600eb991d1a438e2b224b6d4b8e6ef0bc63e0bc4fe67d00",
+      "license": "AI Scientist Source Code License 1.0"
+    },
+    {
+      "id": "arbor",
+      "repository": "https://github.com/RUC-NLPIR/Arbor",
+      "revision": "2f4e65410a5c21c9e55835a9a0d77ead21a64ffa",
+      "source_archive_sha256": "362c3f9d76139107b51295e7a9ecb006811f8616335c558f951d9a6d0836d885",
+      "license": "Apache-2.0"
+    },
+    {
+      "id": "aris-code",
+      "repository": "https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep",
+      "revision": "2ed1fabc3cf0002396f5fed8d0f501686ec727c4",
+      "release": "v0.4.24",
+      "source_archive_sha256": "b1c03df8144b1b30cb2f125d98354c400ac7e89a36852c5cda212705ccfc7ad9",
+      "license": "MIT"
+    },
+    {
+      "id": "sam3d-objects",
+      "repository": "https://github.com/facebookresearch/sam-3d-objects",
+      "revision": "f91db411c50efee93d8db7aeb323885650f6f722",
+      "source_archive_sha256": "75d92618cdece96f74aeef7c46fb289ebb76d647f33b61239c68262ef16b9018",
+      "license": "SAM License (custom)"
+    }
+  ]
+}

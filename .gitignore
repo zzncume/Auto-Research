@@ -1,0 +1,53 @@
+# Secrets: never relax these rules.
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+**/config.local.*
+
+# Runtime environments and caches.
+envs/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+hf-cache/
+torch-cache/
+
+# Models, datasets, and generated artifacts.
+checkpoints/
+datasets/raw/
+datasets/cache/
+runs/raw/
+runs/processed/
+*.ckpt
+*.pth
+*.pt
+*.safetensors
+*.bin
+*.ply
+*.obj
+*.glb
+*.mp4
+
+# Logs and local tool state.
+*.log
+*.pid
+*.status
+.aris/
+.claude/
+.codex/
+
+# Editors and OS metadata.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
