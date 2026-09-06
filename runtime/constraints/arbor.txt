@@ -1,0 +1,2 @@
+# Matches Arbor's official uv.lock at revision 2f4e65410a5c21c9e55835a9a0d77ead21a64ffa.
+litellm==1.89.0

@@ -45,6 +45,8 @@ assets, or unfiltered run logs.
 See `docs/api-compatibility.md`, `docs/experiment-protocol.md`, and
 `docs/reproducibility.md` before starting paid API experiments. Exact key-loading and
 smoke-test steps are in `docs/qwen-setup.md`.
+Observed smoke-test outcomes and compatibility limitations are recorded in
+`docs/validation-status.md`.
 
 ## License
 

@@ -45,3 +45,16 @@ prints the credential.
 
 ARIS officially recommends a different-family reviewer. The one-model policy is an
 intentional benchmark deviation and must be stated when interpreting its results.
+
+## Arbor environment constraint
+
+Use the LiteLLM version locked by the pinned Arbor source revision:
+
+```bash
+/home/user/projects/autoresearch/envs/arbor/bin/pip install \
+  -c /home/user/projects/autoresearch/Auto-Research/runtime/constraints/arbor.txt \
+  litellm
+```
+
+An unconstrained install may select LiteLLM 1.99.0, which imports
+`typing.NotRequired` and fails under the current Python 3.10 Arbor environment.
