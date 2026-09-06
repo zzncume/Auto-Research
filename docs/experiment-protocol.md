@@ -32,6 +32,14 @@ new run IDs rather than overwriting earlier attempts.
 - Additional datasets may provide supplementary evidence but cannot replace the core
   benchmark result.
 
+## Paper format control
+
+All systems must use the same frozen official CVPR LaTeX template. The exact CVPR
+edition, anonymous review versus final mode, page limit, and supplementary-material
+policy must be selected before `protocol-v1.0` is tagged. Record the template source,
+version, and file hashes, and compile a no-API test PDF for every system. A system's
+default ICLR, NeurIPS, or other template must not be used as its primary paper format.
+
 ## Failure accounting
 
 Empty responses, incompatible response structures, truncation, rate limits, crashes,
