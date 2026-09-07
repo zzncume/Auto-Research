@@ -1,0 +1,17 @@
+[Unit]
+Description=Dedicated AutoResearch cgroup accounting delegation
+
+[Service]
+Type=simple
+User=zf
+Group=zf
+Delegate=cpu memory pids
+ExecStart=/usr/bin/python3 -B /home/zf/projects/autoresearch/Auto-Research/scripts/preexperiment/cgroup_keeper.py --activate-delegation --status-file /home/zf/projects/autoresearch/admin_review/preexperiment-20260907/cgroup-delegation-live.json
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/zf/projects/autoresearch/admin_review/preexperiment-20260907
+ProtectControlGroups=no
+Restart=no
