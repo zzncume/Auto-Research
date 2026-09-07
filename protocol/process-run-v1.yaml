@@ -1,0 +1,41 @@
+{
+  "protocol_id": "process-run-v1",
+  "lifecycle": "IMPLEMENTED_PENDING_FINAL_FREEZE",
+  "visibility": "operator_only_never_mount_to_tested_systems",
+  "approval_scope": "P1/P3 offline implementation; P2/P4 drafts only",
+  "canonical_root": "/home/zf/projects/autoresearch",
+  "brief": {
+    "path": "Auto-Research/common_start_package/protocol-v0.9/RESEARCH_BRIEF.md",
+    "sha256": "8610326c0c4796cff741383c2097bb71b4afcc8159421a71b4922d9835ecf310",
+    "topic_policy": "unchanged; separate native mapping requires explicit approval"
+  },
+  "model": "qwen3.8-max",
+  "other_provider_models": {"deepseek": null, "gpt": null},
+  "gpu_policy": "one fixed GPU; inherited approved identity; no fallback or DDP",
+  "historical_science": {
+    "disposition": "preserve_in_place_optional_post_run_analysis",
+    "formal_dependency": false,
+    "components": ["reference_builder", "scientific_evaluator", "reference_sets", "private_gt", "quality_scores"],
+    "modify_or_delete_evidence": false,
+    "rewrite_prior_commitments": false
+  },
+  "completion_domain": "native_workflow_integrity_only",
+  "scientific_quality": "user_review_after_all_runs_no_feedback_or_ranking_by_integrity_evaluator",
+  "runtime": "admin_runtime/process_run_v1/process_integrity.py",
+  "required_readiness_evidence": [
+    "seed_papers_and_visible_package_approved",
+    "native_mappings_and_stage_profiles_approved",
+    "input_parity_and_information_isolation_verified",
+    "integrity_archive_regression_verified",
+    "environments_rebuilt_and_verified",
+    "device_network_and_environment_isolation_verified",
+    "qwen_all_role_routing_verified",
+    "api_billing_resource_intervention_audits_verified",
+    "native_launch_and_all_parameters_approved",
+    "canary_plan_and_execution_approved",
+    "four_no_score_canaries_verified",
+    "final_protocol_and_commitments_approved"
+  ],
+  "readiness_target": "READY_FOR_FORMAL_RUN_APPROVAL",
+  "formal_execution_requires_separate_final_user_approval": true
+}
