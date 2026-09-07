@@ -1,0 +1,37 @@
+--- a/uv.lock
++++ b/uv.lock
+@@ -248,6 +248,7 @@
+     { name = "prompt-toolkit" },
+     { name = "pydantic" },
+     { name = "pydantic-settings" },
++    { name = "pypdf" },
+     { name = "pyyaml" },
+     { name = "requests" },
+     { name = "rich" },
+@@ -285,6 +286,7 @@
+     { name = "prompt-toolkit", specifier = ">=3.0" },
+     { name = "pydantic", specifier = ">=2.0" },
+     { name = "pydantic-settings", specifier = ">=2.0" },
++    { name = "pypdf", specifier = ">=4.0" },
+     { name = "pyyaml", specifier = ">=6.0" },
+     { name = "requests", specifier = ">=2.28" },
+     { name = "rich", specifier = ">=13.0" },
+@@ -2109,6 +2111,18 @@
+ sdist = { url = "https://files.pythonhosted.org/packages/9e/26/d1015444da4d952a1ca487a236b522eb979766f0295a0bd0c5fc089989a9/pymdown_extensions-10.21.3.tar.gz", hash = "sha256:72cfcf55f07aea0d4af2c4f11dd4e52466ddfb1bb819673146398e0bd3a77354", size = 854140, upload-time = "2026-05-13T12:57:32.267Z" }
+ wheels = [
+     { url = "https://files.pythonhosted.org/packages/7e/85/545a951eecc270fcd688288c600017e2050a1aacb56c711d208586d3e470/pymdown_extensions-10.21.3-py3-none-any.whl", hash = "sha256:d7a5d08014fc571e80ca21dd6f854e31f94c489800350564d55d15b3c41e76b6", size = 269002, upload-time = "2026-05-13T12:57:30.296Z" },
++]
++
++[[package]]
++name = "pypdf"
++version = "6.17.0"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/5d/dc/34857a5e31cf708c163929f61a9ba4bd357a8850e49fc4e846ced527b51f/pypdf-6.17.0.tar.gz", hash = "sha256:097ad0d829778ec5b615aeaa5c6da4b6cac4992f8fd80b56f98a1a8c006573bb", size = 7018352, upload-time = "2026-09-04T11:30:44.256Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/c1/08/1e9731038124a9127e1d27848952b86fb32b2f45f8f1b94adc7f0817a6ac/pypdf-6.17.0-py3-none-any.whl", hash = "sha256:5bd827266a21553b74d910e350131a6227b72f2ab4209bf372814b8195fa11c5", size = 388051, upload-time = "2026-09-04T11:30:42.681Z" },
+ ]
+ 
+ [[package]]

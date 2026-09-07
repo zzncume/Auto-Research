@@ -1,0 +1,30 @@
+[
+  {
+    "source": "https://conda.anaconda.org/nvidia/label/cuda-12.1.1/linux-64/cuda-cccl-12.1.109-0.tar.bz2",
+    "bytes": 1260072,
+    "sha256": "b3aacf23055a5b0a2b8e52adbb59933775209e14274457dfb8673a3cf5f60ccb",
+    "name": "cuda-cccl",
+    "version": "12.1.109"
+  },
+  {
+    "source": "https://conda.anaconda.org/nvidia/label/cuda-12.1.1/linux-64/cuda-cudart-12.1.105-0.tar.bz2",
+    "bytes": 193370,
+    "sha256": "8ce27449a0a1d98630b8b13669590a34b04bccf11bf9a98151a40541f7edf7ba",
+    "name": "cuda-cudart",
+    "version": "12.1.105"
+  },
+  {
+    "source": "https://conda.anaconda.org/nvidia/label/cuda-12.1.1/linux-64/cuda-cudart-dev-12.1.105-0.tar.bz2",
+    "bytes": 380810,
+    "sha256": "eaf9ea2d6a606eb2883a356a24afe04c0075d802054524d9c4c6c10bbeef40de",
+    "name": "cuda-cudart-dev",
+    "version": "12.1.105"
+  },
+  {
+    "source": "https://conda.anaconda.org/nvidia/label/cuda-12.1.1/linux-64/cuda-nvcc-12.1.105-0.tar.bz2",
+    "bytes": 54927996,
+    "sha256": "bb8176dd6595206ac393c03a54d10643bdfa2101af8285f3e48caa73be0ef4d7",
+    "name": "cuda-nvcc",
+    "version": "12.1.105"
+  }
+]

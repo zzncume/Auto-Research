@@ -1,0 +1,11 @@
+--- a/notebook/inference.py
++++ b/notebook/inference.py
+@@ -2,7 +2,7 @@
+ import os
+ 
+ # not ideal to put that here
+-os.environ["CUDA_HOME"] = os.environ["CONDA_PREFIX"]
++os.environ.setdefault("CUDA_HOME", os.environ.get("CONDA_PREFIX", "/opt/cuda"))
+ os.environ["LIDRA_SKIP_INIT"] = "true"
+ 
+ import sys

@@ -1,0 +1,641 @@
+--- /dev/null
++++ b/ai_scientist/latex_compat.py
+@@ -0,0 +1,22 @@
++"""Support inline native bibliographies and the frozen CVPR external .bib file."""
++from pathlib import Path
++import re
++
++INLINE=r'\\begin\{filecontents\}\{references.bib\}(.*?)\\end\{filecontents\}'
++
++def bib_path(tex,folder):
++    match=re.search(r'\\bibliography\{([^},]+)\}',tex)
++    if not match:raise ValueError('bibliography not declared')
++    root=Path(folder).resolve();p=(root/(match.group(1)+'.bib')).resolve()
++    if root not in p.parents:raise ValueError('bibliography outside paper directory')
++    return p
++
++def bibliography_text(tex,folder):
++    match=re.search(INLINE,tex,re.DOTALL)
++    return match.group(1) if match else bib_path(tex,folder).read_text()
++
++def append_bibliography(tex,folder,addition):
++    if re.search(INLINE,tex,re.DOTALL):
++        return tex.replace(r'\end{filecontents}',addition+'\n'+r'\end{filecontents}',1)
++    with bib_path(tex,folder).open('a') as f:f.write('\n'+addition+'\n')
++    return tex
+--- a/ai_scientist/llm.py
++++ b/ai_scientist/llm.py
+@@ -11,6 +11,7 @@
+ MAX_NUM_TOKENS = 4096
+ 
+ AVAILABLE_LLMS = [
++    "qwen3.8-max",
+     "claude-3-5-sonnet-20240620",
+     "claude-3-5-sonnet-20241022",
+     # OpenAI models
+@@ -73,6 +74,34 @@
+ ]
+ 
+ 
++def is_openai_compatible_model(model: str) -> bool:
++    return os.environ.get("AI_SCIENTIST_OPENAI_COMPATIBLE") == "1" or model.startswith("qwen")
++
++
++def configured_model(fallback: str | None = None) -> str:
++    model = os.environ.get("AI_SCIENTIST_MODEL") or fallback
++    if not model:
++        raise ValueError("AI_SCIENTIST_MODEL is not configured.")
++    return model
++
++
++def extract_message_text(content: Any) -> str:
++    if isinstance(content, str):
++        text = content.strip()
++    elif isinstance(content, list):
++        parts = []
++        for block in content:
++            value = block.get("text") if isinstance(block, dict) else getattr(block, "text", None)
++            if value:
++                parts.append(value)
++        text = "\n".join(parts).strip()
++    else:
++        text = ""
++    if not text:
++        raise ValueError("The OpenAI-compatible endpoint returned empty message content.")
++    return text
++
++
+ # Get N responses from a single message, used for ensembling.
+ @backoff.on_exception(
+     backoff.expo,
+@@ -98,7 +127,16 @@
+     if msg_history is None:
+         msg_history = []
+ 
+-    if model.startswith("ollama/"):
++    if is_openai_compatible_model(model):
++        content, new_msg_history = [], []
++        for _ in range(n_responses):
++            c, hist = get_response_from_llm(
++                msg, client, model, system_message, print_debug=False,
++                msg_history=msg_history, temperature=temperature,
++            )
++            content.append(c)
++            new_msg_history.append(hist)
++    elif model.startswith("ollama/"):
+         new_msg_history = msg_history + [{"role": "user", "content": msg}]
+         response = client.chat.completions.create(
+             model=model.replace("ollama/", ""),
+@@ -214,7 +252,14 @@
+ 
+ @track_token_usage
+ def make_llm_call(client, model, temperature, system_message, prompt):
+-    if model.startswith("ollama/"):
++    if is_openai_compatible_model(model):
++        return client.chat.completions.create(
++            model=model,
++            messages=[{"role": "system", "content": system_message}, *prompt],
++            temperature=temperature,
++            max_tokens=MAX_NUM_TOKENS,
++        )
++    elif model.startswith("ollama/"):
+         return client.chat.completions.create(
+             model=model.replace("ollama/", ""),
+             messages=[
+@@ -277,7 +322,15 @@
+     if msg_history is None:
+         msg_history = []
+ 
+-    if "claude" in model:
++    if is_openai_compatible_model(model):
++        new_msg_history = msg_history + [{"role": "user", "content": msg}]
++        response = make_llm_call(
++            client, model, temperature,
++            system_message=system_message, prompt=new_msg_history,
++        )
++        content = extract_message_text(response.choices[0].message.content)
++        new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
++    elif "claude" in model:
+         new_msg_history = msg_history + [
+             {
+                 "role": "user",
+@@ -478,7 +531,14 @@
+ 
+ 
+ def create_client(model) -> tuple[Any, str]:
+-    if model.startswith("claude-"):
++    if is_openai_compatible_model(model):
++        api_key = os.environ.get("AI_SCIENTIST_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
++        base_url = os.environ.get("AI_SCIENTIST_BASE_URL")
++        if not api_key or not base_url:
++            raise ValueError("Set DASHSCOPE_API_KEY and AI_SCIENTIST_BASE_URL for this model.")
++        print(f"Using configured OpenAI-compatible API with model {model}.")
++        return openai.OpenAI(api_key=api_key, base_url=base_url), model
++    elif model.startswith("claude-"):
+         print(f"Using Anthropic API with model {model}.")
+         return anthropic.Anthropic(), model
+     elif model.startswith("bedrock") and "claude" in model:
+--- a/ai_scientist/perform_icbinb_writeup.py
++++ b/ai_scientist/perform_icbinb_writeup.py
+@@ -15,6 +15,7 @@
+     extract_json_between_markers,
+     create_client,
+     AVAILABLE_LLMS,
++    configured_model,
+ )
+ 
+ from ai_scientist.utils.token_tracker import track_token_usage
+@@ -742,7 +743,7 @@
+     return filtered_summaries
+ 
+ 
+-def gather_citations(base_folder, num_cite_rounds=20, small_model="gpt-4o-2024-05-13"):
++def gather_citations(base_folder, num_cite_rounds=20, small_model=None):
+     """
+     Gather citations for a paper, with ability to resume from previous progress.
+ 
+@@ -756,6 +757,7 @@
+         str: The gathered citations text, or None if failed
+     """
+ 
++    small_model = small_model or configured_model()
+     # Paths for storing progress
+     citations_cache_path = osp.join(base_folder, "cached_citations.bib")
+     progress_path = osp.join(base_folder, "citations_progress.json")
+@@ -859,11 +861,13 @@
+     citations_text=None,
+     no_writing=False,
+     num_cite_rounds=20,
+-    small_model="gpt-4o-2024-05-13",
+-    big_model="o1-2024-12-17",
++    small_model=None,
++    big_model=None,
+     n_writeup_reflections=3,
+     page_limit=4,
+ ):
++    small_model = small_model or configured_model()
++    big_model = big_model or configured_model()
+     pdf_file = osp.join(base_folder, f"{osp.basename(base_folder)}.pdf")
+     latex_folder = osp.join(base_folder, "latex")
+ 
+--- a/ai_scientist/perform_ideation_temp_free.py
++++ b/ai_scientist/perform_ideation_temp_free.py
+@@ -1,5 +1,6 @@
+ import argparse
+ import json
++import os
+ import os.path as osp
+ import re
+ import traceback
+@@ -273,7 +274,7 @@
+     parser.add_argument(
+         "--model",
+         type=str,
+-        default="gpt-4o-2024-05-13",
++        default=os.environ.get("AI_SCIENTIST_MODEL"),
+         choices=AVAILABLE_LLMS,
+         help="Model to use for AI Scientist.",
+     )
+--- a/ai_scientist/perform_writeup.py
++++ b/ai_scientist/perform_writeup.py
+@@ -1,3 +1,4 @@
++from ai_scientist.latex_compat import bibliography_text, append_bibliography
+ import argparse
+ import json
+ import os
+@@ -14,6 +15,7 @@
+     extract_json_between_markers,
+     create_client,
+     AVAILABLE_LLMS,
++    configured_model,
+ )
+ 
+ from ai_scientist.tools.semantic_scholar import search_for_papers
+@@ -40,10 +42,10 @@
+     print("GENERATING LATEX")
+ 
+     commands = [
+-        ["pdflatex", "-interaction=nonstopmode", "template.tex"],
++        ["pdflatex", "-no-shell-escape", "-interaction=nonstopmode", "template.tex"],
+         ["bibtex", "template"],
+-        ["pdflatex", "-interaction=nonstopmode", "template.tex"],
+-        ["pdflatex", "-interaction=nonstopmode", "template.tex"],
++        ["pdflatex", "-no-shell-escape", "-interaction=nonstopmode", "template.tex"],
++        ["pdflatex", "-no-shell-escape", "-interaction=nonstopmode", "template.tex"],
+     ]
+ 
+     for command in commands:
+@@ -91,10 +93,10 @@
+ 
+         # Compile in the temp folder
+         commands = [
+-            ["pdflatex", "-interaction=nonstopmode", "template.tex"],
++            ["pdflatex", "-no-shell-escape", "-interaction=nonstopmode", "template.tex"],
+             ["bibtex", "template"],
+-            ["pdflatex", "-interaction=nonstopmode", "template.tex"],
+-            ["pdflatex", "-interaction=nonstopmode", "template.tex"],
++            ["pdflatex", "-no-shell-escape", "-interaction=nonstopmode", "template.tex"],
++            ["pdflatex", "-no-shell-escape", "-interaction=nonstopmode", "template.tex"],
+         ]
+         for command in commands:
+             try:
+@@ -456,11 +458,13 @@
+     base_folder,
+     no_writing=False,
+     num_cite_rounds=20,
+-    small_model="gpt-4o-2024-05-13",
+-    big_model="o1-2024-12-17",
++    small_model=None,
++    big_model=None,
+     n_writeup_reflections=3,
+     page_limit=8,
+ ):
++    small_model = small_model or configured_model()
++    big_model = big_model or configured_model()
+     compile_attempt = 0
+     base_pdf_file = osp.join(base_folder, f"{osp.basename(base_folder)}")
+     latex_folder = osp.join(base_folder, "latex")
+@@ -511,7 +515,7 @@
+         # Prepare a new fresh latex folder
+         if not osp.exists(osp.join(latex_folder, "template.tex")):
+             shutil.copytree(
+-                "ai_scientist/blank_icml_latex", latex_folder, dirs_exist_ok=True
++                os.environ["RESEARCH_LATEX_TEMPLATE"], latex_folder, dirs_exist_ok=True
+             )
+ 
+         writeup_file = osp.join(latex_folder, "template.tex")
+@@ -545,14 +549,7 @@
+             with open(writeup_file, "r") as f:
+                 writeup_text = f.read()
+             try:
+-                references_bib = re.search(
+-                    r"\\begin{filecontents}{references.bib}(.*?)\\end{filecontents}",
+-                    writeup_text,
+-                    re.DOTALL,
+-                )
+-                if references_bib is None:
+-                    raise ValueError("No references.bib found in template.tex")
+-                citations_text = references_bib.group(1)
++                citations_text = bibliography_text(writeup_text, latex_folder)
+                 context_for_citation = (combined_summaries_str, citations_text)
+ 
+                 addition, done = get_citation_addition(
+@@ -577,9 +574,7 @@
+                         existing_titles = [t.lower() for t in existing_titles]
+                         if new_title not in existing_titles:
+                             pattern_end = r"\end{filecontents}"
+-                            revised = writeup_text.replace(
+-                                pattern_end, f"\n{addition}{pattern_end}"
+-                            )
++                            revised = append_bibliography(writeup_text, latex_folder, addition)
+                             with open(writeup_file, "w") as fo:
+                                 fo.write(revised)
+             except Exception:
+--- a/ai_scientist/treesearch/backend/backend_openai.py
++++ b/ai_scientist/treesearch/backend/backend_openai.py
+@@ -5,6 +5,8 @@
+ from .utils import FunctionSpec, OutputType, opt_messages_to_list, backoff_create
+ from funcy import notnone, once, select_values
+ import openai
++import os
++from ai_scientist.llm import is_openai_compatible_model, extract_message_text
+ from rich import print
+ 
+ logger = logging.getLogger("ai-scientist")
+@@ -18,7 +20,13 @@
+ )
+ 
+ def get_ai_client(model: str, max_retries=2) -> openai.OpenAI:
+-    if model.startswith("ollama/"):
++    if is_openai_compatible_model(model):
++        api_key = os.environ.get("AI_SCIENTIST_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
++        base_url = os.environ.get("AI_SCIENTIST_BASE_URL")
++        if not api_key or not base_url:
++            raise ValueError("Set DASHSCOPE_API_KEY and AI_SCIENTIST_BASE_URL for this model.")
++        client = openai.OpenAI(api_key=api_key, base_url=base_url, max_retries=max_retries)
++    elif model.startswith("ollama/"):
+         client = openai.OpenAI(
+             base_url="http://localhost:11434/v1", 
+             max_retries=max_retries
+@@ -59,7 +67,7 @@
+     choice = completion.choices[0]
+ 
+     if func_spec is None:
+-        output = choice.message.content
++        output = extract_message_text(choice.message.content)
+     else:
+         assert (
+             choice.message.tool_calls
+--- a/ai_scientist/treesearch/journal.py
++++ b/ai_scientist/treesearch/journal.py
+@@ -12,6 +12,7 @@
+ from .utils.metric import MetricValue, WorstMetricValue
+ from .utils.response import trim_long_string
+ from .backend import FunctionSpec, query
++from ai_scientist.llm import configured_model
+ 
+ from rich import print
+ 
+@@ -468,7 +469,7 @@
+ 
+         try:
+             if cfg is None or cfg.agent.get("select_node", None) is None:
+-                model = "gpt-4o"
++                model = configured_model()
+                 temperature = 0.3
+             else:
+                 model = cfg.agent.select_node.model
+@@ -541,7 +542,7 @@
+                 "2. Common failure patterns and pitfalls to avoid\n"
+                 "3. Specific recommendations for future experiments based on both successes and failures"
+             ),
+-            model=model_kwargs.get("model", "gpt-4o"),
++            model=model_kwargs.get("model") or configured_model(),
+             temperature=model_kwargs.get("temp", 0.3)
+         )
+ 
+@@ -604,7 +605,7 @@
+         stage_summary = query(
+             system_message=summary_prompt,
+             user_message="Generate a comprehensive summary of the experimental findings in this stage",
+-            model=cfg.agent.summary.model if cfg.agent.get("summary", None) else "gpt-4o",
++            model=cfg.agent.summary.model if cfg.agent.get("summary", None) else configured_model(),
+             temperature=cfg.agent.summary.temp if cfg.agent.get("summary", None) else 0.3
+         )
+ 
+--- a/ai_scientist/treesearch/log_summarization.py
++++ b/ai_scientist/treesearch/log_summarization.py
+@@ -6,7 +6,7 @@
+ 
+ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+ sys.path.insert(0, parent_dir)
+-from ai_scientist.llm import get_response_from_llm, extract_json_between_markers
++from ai_scientist.llm import get_response_from_llm, extract_json_between_markers, configured_model
+ from ai_scientist.treesearch.backend import get_ai_client
+ 
+ 
+@@ -269,7 +269,7 @@
+                     if cfg.agent.get("summary", None) is not None:
+                         model = cfg.agent.summary.model
+                     else:
+-                        model = "gpt-4o-2024-08-06"
++                        model = configured_model()
+                     client = get_ai_client(model)
+                     response = get_response_from_llm(
+                         overall_plan_summarizer_prompt.format(
+@@ -341,7 +341,7 @@
+             if cfg.agent.get("summary", None) is not None:
+                 model = cfg.agent.summary.get("model", "")
+             else:
+-                model = "gpt-4o-2024-08-06"
++                model = configured_model()
+             client = get_ai_client(model)
+             summary_json = get_stage_summary(journal, stage_name, model, client)
+             return summary_json
+--- a/ai_scientist/utils/token_tracker.py
++++ b/ai_scientist/utils/token_tracker.py
+@@ -104,11 +104,11 @@
+         self.interactions = defaultdict(list)
+         # self._encoders = {}
+ 
+-    def calculate_cost(self, model: str) -> float:
++    def calculate_cost(self, model: str) -> Optional[float]:
+         """Calculate the cost for a specific model based on token usage."""
+         if model not in self.MODEL_PRICES:
+             logging.warning(f"Price information not available for model {model}")
+-            return 0.0
++            return None
+ 
+         prices = self.MODEL_PRICES[model]
+         tokens = self.token_counts[model]
+@@ -132,6 +132,7 @@
+             summary[model] = {
+                 "tokens": tokens.copy(),
+                 "cost (USD)": self.calculate_cost(model),
++                "cost_status": "calculated" if model in self.MODEL_PRICES else "pricing_not_configured",
+             }
+         return summary
+ 
+@@ -157,15 +158,15 @@
+         model = result.model
+         timestamp = result.created
+ 
+-        if hasattr(result, "usage") and result.usage.completion_tokens_details is not None:
++        if hasattr(result, "usage") and result.usage is not None:
+             token_tracker.add_tokens(
+                 model,
+                 result.usage.prompt_tokens,
+                 result.usage.completion_tokens,
+-                result.usage.completion_tokens_details.reasoning_tokens,
++                getattr(getattr(result.usage, "completion_tokens_details", None), "reasoning_tokens", 0) or 0,
+                 (
+                     result.usage.prompt_tokens_details.cached_tokens
+-                    if hasattr(result.usage, "prompt_tokens_details")
++                    if getattr(result.usage, "prompt_tokens_details", None) is not None
+                     else 0
+                 ),
+             )
+@@ -195,15 +196,15 @@
+         logging.info("args: ", args)
+         logging.info("kwargs: ", kwargs)
+ 
+-        if hasattr(result, "usage") and result.usage.completion_tokens_details is not None:
++        if hasattr(result, "usage") and result.usage is not None:
+             token_tracker.add_tokens(
+                 model,
+                 result.usage.prompt_tokens,
+                 result.usage.completion_tokens,
+-                result.usage.completion_tokens_details.reasoning_tokens,
++                getattr(getattr(result.usage, "completion_tokens_details", None), "reasoning_tokens", 0) or 0,
+                 (
+                     result.usage.prompt_tokens_details.cached_tokens
+-                    if hasattr(result.usage, "prompt_tokens_details")
++                    if getattr(result.usage, "prompt_tokens_details", None) is not None
+                     else 0
+                 ),
+             )
+--- a/ai_scientist/vlm.py
++++ b/ai_scientist/vlm.py
+@@ -7,10 +7,12 @@
+ import os
+ from PIL import Image
+ from ai_scientist.utils.token_tracker import track_token_usage
++from ai_scientist.llm import is_openai_compatible_model, extract_message_text
+ 
+ MAX_NUM_TOKENS = 4096
+ 
+ AVAILABLE_VLMS = [
++    "qwen3.8-max",
+     "gpt-4o-2024-05-13",
+     "gpt-4o-2024-08-06",
+     "gpt-4o-2024-11-20",
+@@ -51,7 +53,14 @@
+ 
+ @track_token_usage
+ def make_llm_call(client, model, temperature, system_message, prompt):
+-    if model.startswith("ollama/"):
++    if is_openai_compatible_model(model):
++        return client.chat.completions.create(
++            model=model,
++            messages=[{"role": "system", "content": system_message}, *prompt],
++            temperature=temperature,
++            max_tokens=MAX_NUM_TOKENS,
++        )
++    elif model.startswith("ollama/"):
+         return client.chat.completions.create(
+             model=model.replace("ollama/", ""),
+             messages=[
+@@ -94,7 +103,14 @@
+ 
+ @track_token_usage
+ def make_vlm_call(client, model, temperature, system_message, prompt):
+-    if model.startswith("ollama/"):
++    if is_openai_compatible_model(model):
++        return client.chat.completions.create(
++            model=model,
++            messages=[{"role": "system", "content": system_message}, *prompt],
++            temperature=temperature,
++            max_tokens=MAX_NUM_TOKENS,
++        )
++    elif model.startswith("ollama/"):
+         return client.chat.completions.create(
+             model=model.replace("ollama/", ""),
+             messages=[
+@@ -144,7 +160,7 @@
+     if msg_history is None:
+         msg_history = []
+ 
+-    if model in AVAILABLE_VLMS:
++    if model in AVAILABLE_VLMS or is_openai_compatible_model(model):
+         # Convert single image path to list for consistent handling
+         if isinstance(image_paths, str):
+             image_paths = [image_paths]
+@@ -175,7 +191,7 @@
+             prompt=new_msg_history,
+         )
+ 
+-        content = response.choices[0].message.content
++        content = extract_message_text(response.choices[0].message.content)
+         new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
+     else:
+         raise ValueError(f"Model {model} not supported.")
+@@ -194,7 +210,14 @@
+ 
+ def create_client(model: str) -> tuple[Any, str]:
+     """Create client for vision-language model."""
+-    if model in [
++    if is_openai_compatible_model(model):
++        api_key = os.environ.get("AI_SCIENTIST_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
++        base_url = os.environ.get("AI_SCIENTIST_BASE_URL")
++        if not api_key or not base_url:
++            raise ValueError("Set DASHSCOPE_API_KEY and AI_SCIENTIST_BASE_URL for this model.")
++        print(f"Using configured OpenAI-compatible VLM API with model {model}.")
++        return openai.OpenAI(api_key=api_key, base_url=base_url), model
++    elif model in [
+         "gpt-4o-2024-05-13",
+         "gpt-4o-2024-08-06",
+         "gpt-4o-2024-11-20",
+@@ -279,7 +302,7 @@
+     if msg_history is None:
+         msg_history = []
+ 
+-    if model in AVAILABLE_VLMS:
++    if model in AVAILABLE_VLMS or is_openai_compatible_model(model):
+         # Convert single image path to list
+         if isinstance(image_paths, str):
+             image_paths = [image_paths]
+@@ -301,7 +324,18 @@
+         # Construct message with all images
+         new_msg_history = msg_history + [{"role": "user", "content": content}]
+ 
+-        if model.startswith("ollama/"):
++        if is_openai_compatible_model(model):
++            contents, histories = [], []
++            for _ in range(n_responses):
++                item, history = get_response_from_vlm(
++                    msg, image_paths, client, model, system_message,
++                    print_debug=False, msg_history=msg_history,
++                    temperature=temperature, max_images=max_images,
++                )
++                contents.append(item)
++                histories.append(history)
++            return contents, histories
++        elif model.startswith("ollama/"):
+             response = client.chat.completions.create(
+                 model=model.replace("ollama/", ""),
+                 messages=[
+--- a/bfts_config.yaml
++++ b/bfts_config.yaml
+@@ -23,7 +23,7 @@
+ generate_report: True
+ # LLM settings for final report from journal
+ report:
+-  model: gpt-4o-2024-11-20
++  model: qwen3.8-max
+   temp: 1.0
+ 
+ experiment:
+@@ -54,19 +54,19 @@
+ 
+   # LLM settings for coding
+   code:
+-    model: anthropic.claude-3-5-sonnet-20241022-v2:0
++    model: qwen3.8-max
+     temp: 1.0
+     max_tokens: 12000
+ 
+   # LLM settings for evaluating program output / tracebacks
+   feedback:
+-    model: gpt-4o-2024-11-20
++    model: qwen3.8-max
+     # gpt-4o
+     temp: 0.5
+     max_tokens: 8192
+ 
+   vlm_feedback:
+-    model: gpt-4o-2024-11-20
++    model: qwen3.8-max
+     temp: 0.5
+     max_tokens: null
+ 
+--- a/launch_scientist_bfts.py
++++ b/launch_scientist_bfts.py
+@@ -85,19 +85,19 @@
+     parser.add_argument(
+         "--model_agg_plots",
+         type=str,
+-        default="o3-mini-2025-01-31",
++        default=os.environ.get("AI_SCIENTIST_MODEL"),
+         help="Model to use for plot aggregation",
+     )
+     parser.add_argument(
+         "--model_writeup",
+         type=str,
+-        default="o1-preview-2024-09-12",
++        default=os.environ.get("AI_SCIENTIST_MODEL"),
+         help="Model to use for writeup",
+     )
+     parser.add_argument(
+         "--model_citation",
+         type=str,
+-        default="gpt-4o-2024-11-20",
++        default=os.environ.get("AI_SCIENTIST_MODEL"),
+         help="Model to use for citation gathering",
+     )
+     parser.add_argument(
+@@ -109,13 +109,13 @@
+     parser.add_argument(
+         "--model_writeup_small",
+         type=str,
+-        default="gpt-4o-2024-05-13",
++        default=os.environ.get("AI_SCIENTIST_MODEL"),
+         help="Smaller model to use for writeup",
+     )
+     parser.add_argument(
+         "--model_review",
+         type=str,
+-        default="gpt-4o-2024-11-20",
++        default=os.environ.get("AI_SCIENTIST_MODEL"),
+         help="Model to use for review main text and captions",
+     )
+     parser.add_argument(

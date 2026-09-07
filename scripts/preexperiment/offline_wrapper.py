@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import time
 import resource
+import hashlib
 from datetime import datetime,timezone
 
 ROOT=Path('/home/zf/projects/autoresearch')
@@ -32,6 +33,13 @@ def command(source, workspace, argv, environment=None):
           '--setenv','WANDB_MODE','offline']
     for fixed in ('/etc/texmf','/var/lib/texmf','/etc/fonts','/var/cache/fontconfig'):
         if Path(fixed).is_dir():args += ['--ro-bind',fixed,fixed]
+    # Expose only these public runtime-library alternatives, not host /etc.
+    for name in ('libblas.so.3-x86_64-linux-gnu','liblapack.so.3-x86_64-linux-gnu','libopenblas.so.0-x86_64-linux-gnu'):
+        link=Path('/etc/alternatives')/name
+        if link.is_symlink():
+            target=link.resolve(strict=True)
+            if not target.is_relative_to(Path('/usr/lib')):raise ValueError('unexpected library alternative')
+            args += ['--symlink',str(target),str(link)]
     if environment:
         env=environment.resolve(strict=True)
         if ROOT/'envs-rebuilt' not in env.parents: raise ValueError('old environment denied')
@@ -59,6 +67,7 @@ def main():
     a.receipt.parent.mkdir(parents=True,exist_ok=True)
     if a.workspace.resolve() in a.receipt.resolve().parents:
         raise ValueError('receipt must be outside child writable tree')
+    executed_wrapper_sha=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     start=time.monotonic();started=datetime.now(timezone.utc).isoformat()
     before=resource.getrusage(resource.RUSAGE_CHILDREN)
     try:
@@ -70,10 +79,12 @@ def main():
     a.receipt.with_suffix('.stderr').write_bytes(err)
     after=resource.getrusage(resource.RUSAGE_CHILDREN)
     record={'kind':'offline_verification_only','argv':argv,'exit_code':rc,
+            'wrapper_sha256':executed_wrapper_sha,
             'wall_seconds':time.monotonic()-start,'timed_out':timed_out,
             'started_at':started,'ended_at':datetime.now(timezone.utc).isoformat(),
             'cpu_seconds':after.ru_utime+after.ru_stime-before.ru_utime-before.ru_stime,
-            'peak_rss_bytes':after.ru_maxrss*1024,'resource_scope':'waited_child_tree',
+            'peak_rss_bytes':after.ru_maxrss*1024,'resource_scope':'bwrap_process_only',
+            'resource_accounting_complete':False,
             'network':'unshared','gpu_devices':0,'formal_run':False}
     a.receipt.write_text(json.dumps(record,indent=2)+'\n')
     print(json.dumps(record))

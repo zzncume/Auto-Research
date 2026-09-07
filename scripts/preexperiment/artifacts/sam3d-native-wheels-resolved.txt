@@ -1,0 +1,4 @@
+file:///home/zf/projects/autoresearch/common/source_archives/kaolin-0.17.0-cp311-cp311-linux_x86_64.whl --hash=sha256:eefd56fe9403fb2c193c0125e456d6f39b540a87dc0f9ef05e02950fb7975971
+file:///home/zf/projects/autoresearch/common/source_archives/flash_attn-2.8.3%2Bcu12torch2.5cxx11abiFALSE-cp311-cp311-linux_x86_64.whl --hash=sha256:ca5a5614530bad3bcaf936917d53a6d60c9057d1218030efe3ca588cb4f4ebb6
+file:///home/zf/projects/autoresearch/offline-verification/preexperiment-20260907/cuda-extension-build/wheels-sm80/pytorch3d-0.7.8-cp311-cp311-linux_x86_64.whl --hash=sha256:0ff9e457fcce0402457a9297b5d2aa5f9a289efea2e3bd290fb1ec384df067fc
+file:///home/zf/projects/autoresearch/offline-verification/preexperiment-20260907/cuda-extension-build/wheels/gsplat-1.5.3-cp311-cp311-linux_x86_64.whl --hash=sha256:a7a93218aef88604f79e29dd48f2c87576d18e71886dffd49091e62e5eb3c4f6
