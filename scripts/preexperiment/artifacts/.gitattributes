@@ -1,0 +1,2 @@
+# Unified diff artifacts preserve original upstream context whitespace.
+*.patch -whitespace
