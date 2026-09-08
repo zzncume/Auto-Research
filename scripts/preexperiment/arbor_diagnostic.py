@@ -76,7 +76,7 @@ def stage(approval, workspace):
             '--config', '/work/project/research_config.yaml', '--run-name', 'run',
             '--workspace-dir', '/work/native-logs']
     if resume:
-        argv.append('--resume')
+        argv += ['--resume', '--', '--allow-non-base-branch']
     return {'kind': approval['kind'], 'native_argv': [argv], 'resume_environment': resume_environment,
             'task_sha256': approval['task_sha256'], 'formal_brief_used': False}
 
