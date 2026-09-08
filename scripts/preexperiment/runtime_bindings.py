@@ -28,9 +28,12 @@ def bind(system, workspace, native_argv, sockets, local_token, seed):
     if system == 'arbor':
         config_path = Path(workspace)/'project/research_config.yaml'
         config = json.loads(config_path.read_text())
-        config['llm'].update(base_url='http://127.0.0.1:18080/v1', api_key=local_token)
+        config['llm'].update(base_url='http://127.0.0.1:18080/v1', api_key=local_token, llm_timeout=1200.0)
         config_path.write_text(json.dumps(config, indent=2)+'\n')
     env.update(RESEARCH_LOCAL_TOKEN=local_token, RESEARCH_SEED=str(seed), PYTHONHASHSEED=str(seed))
+    if system in ('ai-scientist-v1', 'ai-scientist-v2'):
+        env.update(AUTORESEARCH_NATIVE_SYSTEM=system, AUTORESEARCH_LLM_TIMEOUT_SECONDS='1200',
+                   PYTHONPATH='/runtime-tools:/source')
     if 'literature' in sockets:
         env['S2_API_KEY'] = 'managed-by-local-gateway'
     if 'egress' in sockets:
