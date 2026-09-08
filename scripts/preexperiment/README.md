@@ -62,3 +62,21 @@ component of the future controlled transport boundary, not a network policy.
 
 `check_readiness.py` reads actual evidence and leaves status BLOCKED when a gate
 is missing. Unit tests and CLI/help checks are not native research runs.
+
+## Parameter review versus execution (2026-09-08)
+
+`check_parameter_review.py --dossier <operator-json> --expected-sha256 <external-hash>`
+checks the offline parameter-review dossier. Its READY status is scoped to review;
+it always includes the unchanged strict production readiness and missing gates.
+This separates approval preparation from live verification that requires later
+API/GPU/execution authorization. It does not waive production integration work.
+Candidate values remain unapproved. Host cgroup/systemd deployment is optional,
+not authorized, and never invoked by these tools. Project isolation retains
+explicitly incomplete resource accounting; a measurement policy needs review.
+
+`offline_lifecycle.py` adds bounded process cleanup and streamed operator logs to
+the existing CPU-only wrapper. Its tests cover failure retention, separated
+evidence, namespace boundaries and timeout of a detached descendant. The trusted
+server-only integration captures fixed native --help invocations and verifies
+their archives. This proves lifecycle plumbing, not native research-stage,
+compiler, model, GPU or complete resource observation. It has no live CLI mode.
