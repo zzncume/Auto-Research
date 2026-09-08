@@ -53,7 +53,12 @@ def build(ledger, system, brief):
                    'Model endpoint/authentication is supplied by the trusted runtime, not this plan.']
     else:
         options = {k: selected[k] for k in ('AUTO_WRITE', 'CODE_REVIEW', 'BASE_REPO', 'VENUE')}
-        commands = [aris_argv(brief, options)]
+        binary = Path(__file__).resolve().parents[3]/'tools/aris-code-v0.4.24/reviewer-timeout-compat/aris'
+        expected = '88488832b5900d06f0503eda758dbd23210fbb294fe2cf6cbb321773ccee7597'
+        if hashlib.sha256(binary.read_bytes()).hexdigest() != expected:
+            raise ValueError('verified ARIS reviewer compatibility binary mismatch')
+        commands = [['env', 'ARIS_REVIEWER_TIMEOUT_SECONDS=1200',
+                     '/tools/reviewer-timeout-compat/aris', *aris_argv(brief, options)[1:]]]
         staging = ['Verify selected native bundled skill/reviewer routing and paper stages.']
     return {'status': 'NATIVE_COMMAND_PLAN_NOT_EXECUTABLE', 'system': system,
             'execution_authorized': False, 'processes_started': 0,

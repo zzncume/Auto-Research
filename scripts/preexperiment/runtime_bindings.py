@@ -30,6 +30,9 @@ def bind(system, workspace, native_argv, sockets, local_token, seed):
         config = json.loads(config_path.read_text())
         config['llm'].update(base_url='http://127.0.0.1:18080/v1', api_key=local_token, llm_timeout=1200.0)
         config_path.write_text(json.dumps(config, indent=2)+'\n')
+    if system == 'arbor':
+        env.update(GIT_AUTHOR_NAME='Arbor', GIT_AUTHOR_EMAIL='arbor@localhost',
+                   GIT_COMMITTER_NAME='Arbor', GIT_COMMITTER_EMAIL='arbor@localhost')
     env.update(RESEARCH_LOCAL_TOKEN=local_token, RESEARCH_SEED=str(seed), PYTHONHASHSEED=str(seed))
     if system in ('ai-scientist-v1', 'ai-scientist-v2'):
         env.update(AUTORESEARCH_NATIVE_SYSTEM=system, AUTORESEARCH_LLM_TIMEOUT_SECONDS='1200',

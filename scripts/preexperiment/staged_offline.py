@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import subprocess
 
 from build_single_system_plan import build
 from native_config import arbor_config, MODEL
@@ -63,6 +64,13 @@ def stage(ledger, system, workspace):
         config.update(max_cycles=settings['max_cycles'], executor_max_turns=settings['executor_max_turns'],
                       max_turns=settings['coordinator_max_turns'], max_retries=settings['node_resume_max_retries'])
         (project/'research_config.yaml').write_text(json.dumps(config, indent=2)+'\n')
+        (project/'RESEARCH_BRIEF.md').write_text(brief)
+        (project/'.gitignore').write_text('research_config.yaml\n.coordinator/\n__pycache__/\n')
+        for argv in (['init', '-b', 'main'], ['config', 'user.name', 'Arbor'],
+                     ['config', 'user.email', 'arbor@localhost'],
+                     ['add', '--', 'RESEARCH_BRIEF.md', '.gitignore'],
+                     ['commit', '-m', 'Initialize approved research task']):
+            subprocess.run(['git', '-C', str(project), *argv], check=True, capture_output=True)
     else:
         (project/'RESEARCH_BRIEF.md').write_text(brief)
     return plan
@@ -86,4 +94,13 @@ def command(system, workspace, argv):
         extra += ['--symlink', str(environment), '/env', '--setenv', 'PATH', '/env/bin:/usr/bin:/bin']
     else:
         extra += ['--symlink', '/source', '/tools']
+    if system in ('arbor', 'aris-code'):
+        extra += ['--ro-bind', '/etc/ssl/certs', '/etc/ssl/certs',
+                  '--setenv', 'SSL_CERT_FILE', '/etc/ssl/certs/ca-certificates.crt']
+    if system == 'arbor':
+        native_tmp = workspace/'native-tmp'; native_tmp.mkdir(exist_ok=True)
+        extra += ['--bind', str(native_tmp), '/tmp',
+                  '--ro-bind', str(ROOT/'tools/tokenizer-cache'), '/tokenizer-cache',
+                  '--setenv', 'TIKTOKEN_CACHE_DIR', '/tokenizer-cache',
+                  '--setenv', 'PYTHONUNBUFFERED', '1']
     return base[:-1]+extra+['--']+argv
