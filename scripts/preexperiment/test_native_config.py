@@ -15,6 +15,8 @@ class TestConfig(unittest.TestCase):
     def test_full_brief(self):
         a=aris_argv(self.brief,dict(AUTO_WRITE=True,CODE_REVIEW=True,BASE_REPO=False,VENUE='CVPR'))
         self.assertIn(self.brief,a[-1]);self.assertEqual(a[-2],'prompt')
+        self.assertEqual(a[a.index('--permission-mode')+1],'danger-full-access')
+        self.assertEqual(a[a.index('--output-format')+1],'text')
     def test_arbor_meta(self):
         c=arbor_config(self.brief,'http://127.0.0.1:18080/v1','offline')
         self.assertEqual(c['meta_model'],'qwen3.8-max');self.assertEqual(c['task'],self.brief)

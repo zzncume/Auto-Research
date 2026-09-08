@@ -116,3 +116,18 @@ runtime; TLS traffic is audited by destination and bytes, not decrypted.
 Offline native-search and assembled mock-transport checks pass. GPU bindings and
 complete native research/writeup runs still require separately approved live
 preflight. These modules do not grant execution permission or freeze settings.
+
+## ARIS tool execution and interrupted-run logging (2026-09-08)
+
+The ARIS plan now explicitly selects its native `danger-full-access` and `text`
+defaults. This tool permission is for the child inside the existing project
+sandbox; the namespace, read-only materials and trusted transport mounts remain
+in force. It does not grant host permissions. Text mode renders progress during
+the turn so parent-captured stdout survives a timeout. Native session checkpoints
+still occur at turn completion; this is not a promise of resumable interrupted
+sessions or a complete structured tool transcript.
+
+A fixed offline real-binary check executed Bash, verified a material write was
+denied, delivered the tool result to the next fake request, then interrupted the
+turn and verified retained progress and archive integrity. No live research run
+was performed by this repair.
