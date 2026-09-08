@@ -75,8 +75,17 @@ def stage(approval, workspace):
     argv = ['/env/bin/python', '-m', 'arbor.run', '--cwd', '/work/project',
             '--config', '/work/project/research_config.yaml', '--run-name', 'run',
             '--workspace-dir', '/work/native-logs']
+    forwarded = []
     if resume:
-        argv += ['--resume', '--', '--allow-non-base-branch']
+        argv.append('--resume')
+        forwarded.append('--allow-non-base-branch')
+    native_budget = approval.get('native_time_budget_seconds')
+    if native_budget is not None:
+        if type(native_budget) is not int or native_budget < 1:
+            raise ValueError('positive native time budget required')
+        forwarded += ['--time-budget', str(native_budget)]
+    if forwarded:
+        argv += ['--', *forwarded]
     return {'kind': approval['kind'], 'native_argv': [argv], 'resume_environment': resume_environment,
             'task_sha256': approval['task_sha256'], 'formal_brief_used': False}
 
