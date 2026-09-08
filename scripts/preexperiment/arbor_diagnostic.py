@@ -95,6 +95,9 @@ def command(system, workspace, argv):
              '--ro-bind', str(ROOT/'Auto-Research/scripts/preexperiment'), '/runtime-tools',
              '--ro-bind', str(ROOT/'tools/tokenizer-cache'), '/tokenizer-cache',
              '--setenv', 'TIKTOKEN_CACHE_DIR', '/tokenizer-cache']
+    native_tmp = workspace_path(workspace)/'native-tmp'
+    native_tmp.mkdir(exist_ok=True)
+    extra += ['--bind', str(native_tmp), '/tmp']
     return args[:-1]+extra+['--']+argv
 
 
