@@ -80,3 +80,21 @@ evidence, namespace boundaries and timeout of a detached descendant. The trusted
 server-only integration captures fixed native --help invocations and verifies
 their archives. This proves lifecycle plumbing, not native research-stage,
 compiler, model, GPU or complete resource observation. It has no live CLI mode.
+
+## Single-system preparation (2026-09-08)
+
+`build_single_system_plan.py` renders exactly one selected system from the
+operator approval ledger and verifies its supplied hash. Plans explicitly remain
+non-executable; they neither grant execution permission nor freeze parameters.
+There is no fixed order, queue, batch launch or automatic next system.
+`single_run_lock.py` rejects a competing process without waiting and preserves
+the lock inode. A launcher must keep the lock until cleanup and archive finish.
+
+`staged_offline.py` prepares a new CPU verification workspace containing only
+the selected native input. Common scientific materials and selected inputs are
+mounted read-only; management manifests are excluded. Rebuilt environments
+remain read-only in this offline version. The separate trusted verifier combines
+fixed boundary probes and native --help with sampling, termination and archival.
+This is infrastructure evidence only, not validation of native research stages.
+Writable per-run dependency installation, controlled literature egress, production
+resource/audit integration and separately approved live validation remain pending.
