@@ -21,6 +21,15 @@ def stage(approval, workspace):
         raise ValueError('approved diagnostic task mismatch')
     task = raw.decode()
     argv = aris_diagnostic_argv(task, approval['task_sha256'], approval['native_options'])
+    compatibility = approval.get('reviewer_timeout_compatibility')
+    if compatibility:
+        binary = ROOT/'tools/aris-code-v0.4.24/reviewer-timeout-compat/aris'
+        if hashlib.sha256(binary.read_bytes()).hexdigest() != compatibility['binary_sha256']:
+            raise ValueError('reviewer compatibility binary mismatch')
+        if compatibility['timeout_seconds'] != 1200:
+            raise ValueError('reviewer compatibility timeout must be 1200 seconds')
+        argv = ['env', 'ARIS_REVIEWER_TIMEOUT_SECONDS=1200',
+                '/tools/reviewer-timeout-compat/aris', *argv[1:]]
     workspace = workspace_path(workspace); workspace.mkdir(mode=0o700)
     (workspace/'project').mkdir()
     (workspace/'project/RESEARCH_BRIEF.md').write_bytes(raw)

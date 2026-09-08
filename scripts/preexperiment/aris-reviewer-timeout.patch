@@ -1,0 +1,22 @@
+--- a/crates/tools/src/lib.rs
++++ b/crates/tools/src/lib.rs
+@@ -3961,0 +3962,14 @@
++fn reviewer_timeout_seconds(value: Option<String>) -> u64 {
++    value.and_then(|v| v.parse::<u64>().ok())
++        .filter(|v| *v > 0 && *v <= 3600).unwrap_or(180)
++}
++
++#[test]
++fn reviewer_timeout_preserves_default_and_bounds_override() {
++    assert_eq!(reviewer_timeout_seconds(None), 180);
++    for invalid in ["0", "3601", "invalid"] {
++        assert_eq!(reviewer_timeout_seconds(Some(invalid.to_string())), 180);
++    }
++    assert_eq!(reviewer_timeout_seconds(Some("1200".to_string())), 1200);
++}
++
+@@ -3968 +3982,3 @@
+-        .timeout(std::time::Duration::from_secs(180))
++        .timeout(std::time::Duration::from_secs(reviewer_timeout_seconds(
++            std::env::var("ARIS_REVIEWER_TIMEOUT_SECONDS").ok(),
++        )))
