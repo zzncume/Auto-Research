@@ -42,6 +42,14 @@ def arbor_config(brief,base_url,local_token):
 
 def aris_argv(brief,options):
     validate_brief(brief)
+    return _aris_argv(brief,options)
+
+def aris_diagnostic_argv(task,expected_sha256,options):
+    if hashlib.sha256(task.encode()).hexdigest()!=expected_sha256:
+        raise ValueError('approved diagnostic task mismatch')
+    return _aris_argv(task,options)
+
+def _aris_argv(brief,options):
     allowed={'AUTO_WRITE':bool,'CODE_REVIEW':bool,'BASE_REPO':bool,'VENUE':str}
     if set(options)!=set(allowed):raise ValueError('exact option set required')
     if any(type(options[k]) is not t for k,t in allowed.items()):raise ValueError('invalid option type')

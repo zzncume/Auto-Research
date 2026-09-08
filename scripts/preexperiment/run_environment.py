@@ -52,13 +52,13 @@ def clone(system, workspace, evidence):
     return target
 
 
-def writable_command(system, workspace, argv):
+def writable_command(system, workspace, argv, command_builder=None):
     workspace = workspace_path(workspace)
     source = PROFILES[system][1]
     target = workspace/'venv'
     if not (target/'pyvenv.cfg').is_file() or target.is_symlink():
         raise ValueError('prepared per-run environment required')
-    args = command(system, workspace, argv)
+    args = (command_builder or command)(system, workspace, argv)
     if source is None:
         split = args.index('--')
         args[split:split] = ['--bind', str(target), '/env', '--setenv', 'PATH', '/env/bin:/usr/bin:/bin']
@@ -71,14 +71,14 @@ def writable_command(system, workspace, argv):
     raise ValueError('expected environment mount missing')
 
 
-def pip_bootstrap_command(system, workspace):
+def pip_bootstrap_command(system, workspace, command_builder=None):
     source_python = (PROFILES['ai-scientist-v1'][1]/'bin/python').resolve(strict=True)
     wheels = list((source_python.parent.parent/'lib/python3.11/ensurepip/_bundled').glob('pip-*-py3-none-any.whl'))
     if len(wheels) != 1:
         raise ValueError('one bundled offline pip wheel required')
     wheel = wheels[0]; mounted = '/bootstrap/'+wheel.name
     args = writable_command(system, workspace, ['/env/bin/python', '-m', 'pip', 'install',
-            '--no-index', '--no-deps', '--disable-pip-version-check', mounted])
+            '--no-index', '--no-deps', '--disable-pip-version-check', mounted], command_builder=command_builder)
     split = args.index('--')
     args[split:split] = ['--ro-bind', str(wheel), mounted, '--setenv', 'PYTHONPATH', mounted]
     return args
