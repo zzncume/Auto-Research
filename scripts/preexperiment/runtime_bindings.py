@@ -58,6 +58,11 @@ def bind(system, workspace, native_argv, sockets, local_token, seed):
         (code/'checkpoints/hf').mkdir(parents=True, exist_ok=True)
     extra += ['--ro-bind', str(code), '/materials/code',
               '--ro-bind', str(checkpoints), '/materials/code/checkpoints/hf']
+    extra += ['--ro-bind', str(ROOT/'common/hf-cache/models--Ruicheng--moge-vitl'),
+              '/model-cache/models--Ruicheng--moge-vitl']
+    extra += ['--ro-bind', str(ROOT/'common/torch-cache'), '/torch-cache']
+    env['TORCH_HOME'] = '/torch-cache'
+    env['HF_HUB_CACHE'] = '/model-cache'
     env['RESEARCH_INFERENCE_PYTHON'] = '/inference/bin/python'
     for key, value in env.items():
         extra += ['--setenv', key, value]
