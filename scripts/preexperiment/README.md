@@ -98,3 +98,21 @@ fixed boundary probes and native --help with sampling, termination and archival.
 This is infrastructure evidence only, not validation of native research stages.
 Writable per-run dependency installation, controlled literature egress, production
 resource/audit integration and separately approved live validation remain pending.
+
+## Runtime transport and writable environments (2026-09-08)
+
+`run_environment.py` clones rebuilt Python environments into each run, preserving
+native script paths inside the sandbox. ARIS receives a clean Python tools venv.
+The bundled pip wheel bootstraps installation offline; initial/final installed
+metadata and installer output are retained. Native install commands remain native.
+
+`research_transport.py` routes the existing v1/v2 Semantic Scholar search through
+a local trusted gateway, preserving query/result/retry behavior without passing
+the provider key to the child. `runtime_bindings.py` and `transport_bootstrap.py`
+assemble private relays, scientific material/inference mounts and model routing.
+Public-paper/document/package proxy destinations are configured in the trusted
+runtime; TLS traffic is audited by destination and bytes, not decrypted.
+
+Offline native-search and assembled mock-transport checks pass. GPU bindings and
+complete native research/writeup runs still require separately approved live
+preflight. These modules do not grant execution permission or freeze settings.
