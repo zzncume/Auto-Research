@@ -32,9 +32,14 @@ def inventory(environment):
     return packages
 
 
-def clone(system, workspace, evidence):
+def clone(system, workspace, evidence, source_environment=None):
     workspace = workspace_path(workspace)
     source = PROFILES[system][1]
+    if source_environment is not None:
+        source = Path(source_environment)
+        workspace_path(source.parent)
+        if source.name != 'venv' or source.is_symlink() or not (source/'pyvenv.cfg').is_file():
+            raise ValueError('canonical prior run environment required')
     evidence = Path(evidence).resolve()
     if evidence == workspace or workspace in evidence.parents:
         raise ValueError('environment evidence must be outside native workspace')

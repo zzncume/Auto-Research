@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import stat
 import subprocess
+import shutil
 
 from native_config import MODEL, model_environment
 from offline_wrapper import command as offline_command
@@ -26,26 +27,57 @@ def stage(approval, workspace):
     if set(options) != required or any(type(v) is not int or v < 1 for v in options.values()):
         raise ValueError('explicit native settings required')
     workspace = workspace_path(workspace); workspace.mkdir(mode=0o700)
-    project = workspace/'project'; project.mkdir()
-    (project/'RESEARCH_BRIEF.md').write_bytes(raw)
-    (project/'.gitignore').write_text('research_config.yaml\n.coordinator/\n__pycache__/\n')
-    config = {'task': raw.decode(), 'meta_model': MODEL,
-              'llm': {'provider': 'litellm', 'model': MODEL, 'llm_timeout': 1200,
-                      'base_url': 'http://127.0.0.1:18080/v1', 'api_key': 'pending-local-binding'},
-              'max_cycles': options['max_cycles'], 'executor_max_turns': options['executor_max_turns'],
-              'max_turns': options['coordinator_max_turns'], 'max_retries': options['node_resume_max_retries']}
-    (project/'research_config.yaml').write_text(json.dumps(config, indent=2)+'\n')
-    # Native Arbor branches/worktrees require a repository with an initial HEAD.
-    def git(*args):
-        subprocess.run(['git', '-C', str(project), *args], check=True, capture_output=True)
-    git('init', '-b', 'main'); git('config', 'user.name', 'Arbor diagnostic')
-    git('config', 'user.email', 'arbor@localhost')
-    git('add', '--', 'RESEARCH_BRIEF.md', '.gitignore')
-    git('commit', '-m', 'Initialize approved diagnostic task')
+    resume = approval.get('native_resume')
+    resume_environment = None
+    if resume:
+        tag = resume['source_run_id']
+        if not tag or any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in tag):
+            raise ValueError('invalid resume source')
+        source = workspace_path(ROOT/'offline-verification'/tag)
+        if not (ROOT/'admin_review'/tag/'receipt.json').is_file():
+            raise ValueError('prior run must finish archival before resume')
+        if (source/'project/RESEARCH_BRIEF.md').read_bytes() != raw:
+            raise ValueError('resume task mismatch')
+        for name in ('checkpoint.json', 'messages.jsonl', 'idea_tree.json'):
+            path = source/'native-logs/run/.coordinator'/name
+            if hashlib.sha256(path.read_bytes()).hexdigest() != resume['state_sha256'][name]:
+                raise ValueError('resume state mismatch: '+name)
+        # Preserve /work-relative Git worktree paths and all native state.
+        for entry in source.iterdir():
+            if entry.name == 'venv':
+                continue
+            target = workspace/entry.name
+            if entry.is_symlink():
+                target.symlink_to(entry.readlink())
+            elif entry.is_dir():
+                shutil.copytree(entry, target, symlinks=True)
+            else:
+                shutil.copy2(entry, target)
+        resume_environment = str(source/'venv')
+        (workspace/'diagnostic-resume.json').write_text(json.dumps(resume, indent=2)+'\n')
+    else:
+        project = workspace/'project'; project.mkdir()
+        (project/'RESEARCH_BRIEF.md').write_bytes(raw)
+        (project/'.gitignore').write_text('research_config.yaml\n.coordinator/\n__pycache__/\n')
+        config = {'task': raw.decode(), 'meta_model': MODEL,
+                  'llm': {'provider': 'litellm', 'model': MODEL, 'llm_timeout': 1200,
+                          'base_url': 'http://127.0.0.1:18080/v1', 'api_key': 'pending-local-binding'},
+                  'max_cycles': options['max_cycles'], 'executor_max_turns': options['executor_max_turns'],
+                  'max_turns': options['coordinator_max_turns'], 'max_retries': options['node_resume_max_retries']}
+        (project/'research_config.yaml').write_text(json.dumps(config, indent=2)+'\n')
+        # Native Arbor branches/worktrees require a repository with an initial HEAD.
+        def git(*args):
+            subprocess.run(['git', '-C', str(project), *args], check=True, capture_output=True)
+        git('init', '-b', 'main'); git('config', 'user.name', 'Arbor diagnostic')
+        git('config', 'user.email', 'arbor@localhost')
+        git('add', '--', 'RESEARCH_BRIEF.md', '.gitignore')
+        git('commit', '-m', 'Initialize approved diagnostic task')
     argv = ['/env/bin/python', '-m', 'arbor.run', '--cwd', '/work/project',
             '--config', '/work/project/research_config.yaml', '--run-name', 'run',
             '--workspace-dir', '/work/native-logs']
-    return {'kind': approval['kind'], 'native_argv': [argv],
+    if resume:
+        argv.append('--resume')
+    return {'kind': approval['kind'], 'native_argv': [argv], 'resume_environment': resume_environment,
             'task_sha256': approval['task_sha256'], 'formal_brief_used': False}
 
 
