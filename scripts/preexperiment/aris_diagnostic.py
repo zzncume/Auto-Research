@@ -2,6 +2,8 @@
 import hashlib
 from pathlib import Path
 import stat
+import json
+import shutil
 
 from native_config import aris_diagnostic_argv, model_environment
 from offline_wrapper import command as offline_command
@@ -32,6 +34,25 @@ def stage(approval, workspace):
                 '/tools/reviewer-timeout-compat/aris', *argv[1:]]
     workspace = workspace_path(workspace); workspace.mkdir(mode=0o700)
     (workspace/'project').mkdir()
+    resume = approval.get('native_resume')
+    if resume:
+        source_tag = resume['source_run_id']
+        native_id = resume['native_run_id']
+        if any(not v or any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in v)
+               for v in (source_tag, native_id)):
+            raise ValueError('invalid native resume identity')
+        source = ROOT/'offline-verification'/source_tag/'project'
+        receipt = ROOT/'admin_review'/source_tag/'receipt.json'
+        if not receipt.is_file():
+            raise ValueError('resume requires completed parent archive')
+        state = source/'.aris/runs'/(native_id+'.json')
+        if hashlib.sha256(state.read_bytes()).hexdigest() != resume['state_sha256']:
+            raise ValueError('native resume state mismatch')
+        if (source/'RESEARCH_BRIEF.md').read_bytes() != raw:
+            raise ValueError('native resume task mismatch')
+        shutil.copytree(source, workspace/'project', dirs_exist_ok=True, symlinks=True)
+        argv[-1] += '\n— resume '+native_id
+        (workspace/'diagnostic-resume.json').write_text(json.dumps(resume, indent=2)+'\n')
     (workspace/'project/RESEARCH_BRIEF.md').write_bytes(raw)
     return {'kind': 'aris_simple_workflow_diagnostic', 'native_argv': [argv],
             'task_sha256': approval['task_sha256'], 'formal_brief_used': False}

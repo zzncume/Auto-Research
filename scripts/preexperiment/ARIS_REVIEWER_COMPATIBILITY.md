@@ -31,3 +31,13 @@ Failed diagnostic evidence is preserved; operator stop reasons are recorded
 outside sealed historical receipts. Client timeout does not cancel already
 submitted provider work; the trusted parent drains audit records before archive
 and before allowing another run. Monetary cost remains unknown without prices.
+
+Diagnostic approvals may additionally bind `native_resume` with the prior
+`source_run_id`, ARIS `native_run_id`, and exact `state_sha256`. After prior
+archival completes, staging copies the original project artifacts into a fresh
+workspace, verifies the unchanged task/state, and appends native
+`— resume <run_id>`. It never marks a stage accepted. The native pipeline chooses
+the first unaccepted phase and may revalidate it; no exact conversation resume
+is claimed. The environment is freshly prepared, while prior project artifacts
+and their state are retained verbatim. This path avoids discarding existing work
+without treating incomplete stages as passed.
