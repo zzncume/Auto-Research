@@ -63,6 +63,10 @@ def stage(ledger, system, workspace):
         config = arbor_config(brief, 'http://127.0.0.1:18080/v1', 'offline-placeholder-not-a-provider-key')
         config.update(max_cycles=settings['max_cycles'], executor_max_turns=settings['executor_max_turns'],
                       max_turns=settings['coordinator_max_turns'], max_retries=settings['node_resume_max_retries'])
+        if 'time_budget' in settings:
+            config['time_budget'] = settings['time_budget']
+        if 'budget_policy' in settings:
+            config['budget_policy'] = settings['budget_policy']
         (project/'research_config.yaml').write_text(json.dumps(config, indent=2)+'\n')
         (project/'RESEARCH_BRIEF.md').write_text(brief)
         (project/'.gitignore').write_text('research_config.yaml\n.coordinator/\n__pycache__/\n')
