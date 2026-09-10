@@ -60,7 +60,11 @@ def stage(ledger, system, workspace):
             raise ValueError('mixed model in native config')
         (project/'bfts_config.yaml').write_text(config)
     elif system == 'arbor':
+        from arbor_paper_template import INSTRUCTION
         config = arbor_config(brief, 'http://127.0.0.1:18080/v1', 'offline-placeholder-not-a-provider-key')
+        config['task'] = brief + '\n\n' + INSTRUCTION
+        shutil.copytree(VIEW/'common/native-latex', project/'paper')
+        (project/'PAPER_REQUIREMENTS.md').write_text(INSTRUCTION)
         config.update(max_cycles=settings['max_cycles'], executor_max_turns=settings['executor_max_turns'],
                       max_turns=settings['coordinator_max_turns'], max_retries=settings['node_resume_max_retries'])
         if 'time_budget' in settings:
@@ -72,7 +76,7 @@ def stage(ledger, system, workspace):
         (project/'.gitignore').write_text('research_config.yaml\n.coordinator/\n__pycache__/\n')
         for argv in (['init', '-b', 'main'], ['config', 'user.name', 'Arbor'],
                      ['config', 'user.email', 'arbor@localhost'],
-                     ['add', '--', 'RESEARCH_BRIEF.md', '.gitignore'],
+                     ['add', '--', 'RESEARCH_BRIEF.md', '.gitignore', 'PAPER_REQUIREMENTS.md', 'paper'],
                      ['commit', '-m', 'Initialize approved research task']):
             subprocess.run(['git', '-C', str(project), *argv], check=True, capture_output=True)
     else:
