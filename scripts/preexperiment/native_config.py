@@ -17,7 +17,7 @@ def endpoint(value):
         raise ValueError('invalid audit endpoint')
     return value
 
-def model_environment(system, base_url, local_token):
+def model_environment(system, base_url, local_token, model=MODEL):
     # Caller supplies an ephemeral per-run token; never load credentials here.
     base_url=endpoint(base_url)
     if not local_token:raise ValueError('ephemeral token required')
@@ -29,7 +29,7 @@ def model_environment(system, base_url, local_token):
     elif system=='aris-code':
         env.update(EXECUTOR_PROVIDER='openai',EXECUTOR_BASE_URL=base_url,
                    EXECUTOR_API_KEY=local_token,ARIS_REVIEWER_PROVIDER='custom',
-                   ARIS_REVIEWER_MODEL=MODEL,ARIS_REVIEWER_BASE_URL=base_url,
+                   ARIS_REVIEWER_MODEL=model,ARIS_REVIEWER_BASE_URL=base_url,
                    ARIS_REVIEWER_AUTH_TOKEN=local_token,ARIS_DISABLE_KEYCHAIN='1')
     elif system!='arbor':raise ValueError('unknown system')
     return env
@@ -40,16 +40,16 @@ def arbor_config(brief,base_url,local_token):
     return {'task':brief,'meta_model':MODEL,
             'llm':{'provider':'litellm','model':MODEL,'base_url':endpoint(base_url),'api_key':local_token}}
 
-def aris_argv(brief,options):
+def aris_argv(brief,options,model=MODEL):
     validate_brief(brief)
-    return _aris_argv(brief,options)
+    return _aris_argv(brief,options,model)
 
 def aris_diagnostic_argv(task,expected_sha256,options):
     if hashlib.sha256(task.encode()).hexdigest()!=expected_sha256:
         raise ValueError('approved diagnostic task mismatch')
     return _aris_argv(task,options)
 
-def _aris_argv(brief,options):
+def _aris_argv(brief,options,model=MODEL):
     allowed={'AUTO_WRITE':bool,'CODE_REVIEW':bool,'BASE_REPO':bool,'VENUE':str}
     if set(options)!=set(allowed):raise ValueError('exact option set required')
     if any(type(options[k]) is not t for k,t in allowed.items()):raise ValueError('invalid option type')
@@ -59,5 +59,5 @@ def _aris_argv(brief,options):
     # One argv element, no shell interpolation; full brief remains a substring.
     # Native defaults: tool execution is permitted inside the outer sandbox;
     # text rendering flushes progress before the complete turn returns.
-    return ['/tools/aris','--model',MODEL,'--permission-mode','danger-full-access',
+    return ['/tools/aris','--model',model,'--permission-mode','danger-full-access',
             '--output-format','text','prompt','/research-pipeline '+brief+'\n— '+suffix]

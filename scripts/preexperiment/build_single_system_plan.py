@@ -53,12 +53,16 @@ def build(ledger, system, brief):
                    'Model endpoint/authentication is supplied by the trusted runtime, not this plan.']
     else:
         options = {k: selected[k] for k in ('AUTO_WRITE', 'CODE_REVIEW', 'BASE_REPO', 'VENUE')}
-        binary = Path(__file__).resolve().parents[3]/'tools/aris-code-v0.4.24/reviewer-timeout-compat/aris'
-        expected = '88488832b5900d06f0503eda758dbd23210fbb294fe2cf6cbb321773ccee7597'
+        run_model = ledger.get('run_model', MODEL)
+        deepseek = run_model == 'deepseek-flash'
+        relative = 'aris' if deepseek else 'reviewer-timeout-compat/aris'
+        binary = Path(__file__).resolve().parents[3]/'tools/aris-code-v0.4.24'/relative
+        expected = ('5d0dc25523b77fe05e44c205d4f33db8792b38c1f72c09bb8ce16e33721b39a7' if deepseek
+                    else '88488832b5900d06f0503eda758dbd23210fbb294fe2cf6cbb321773ccee7597')
         if hashlib.sha256(binary.read_bytes()).hexdigest() != expected:
-            raise ValueError('verified ARIS reviewer compatibility binary mismatch')
-        commands = [['env', 'ARIS_REVIEWER_TIMEOUT_SECONDS=1200',
-                     '/tools/reviewer-timeout-compat/aris', *aris_argv(brief, options)[1:]]]
+            raise ValueError('selected ARIS binary mismatch')
+        prefix = [] if deepseek else ['env', 'ARIS_REVIEWER_TIMEOUT_SECONDS=1200']
+        commands = [[*prefix, '/tools/'+relative, *aris_argv(brief, options, run_model)[1:]]]
         staging = ['Verify selected native bundled skill/reviewer routing and paper stages.']
     return {'status': 'NATIVE_COMMAND_PLAN_NOT_EXECUTABLE', 'system': system,
             'execution_authorized': False, 'processes_started': 0,
@@ -67,7 +71,7 @@ def build(ledger, system, brief):
             'approved_system_settings': selected,
             'whole_run_timeout_seconds': settings['whole_run_timeout_seconds'],
             'native_cwd': '/work/project', 'staging_requirements': staging,
-            'model': MODEL, 'brief_sha256': hashlib.sha256(brief.encode()).hexdigest(),
+            'model': ledger.get('run_model', MODEL), 'brief_sha256': hashlib.sha256(brief.encode()).hexdigest(),
             'credential_contract': {
                 'model': 'trusted audited local endpoint and ephemeral token only',
                 'semantic_scholar': 'user supplies S2_API_KEY for v1/v2; authentication integration pending'},

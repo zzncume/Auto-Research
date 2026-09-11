@@ -13,7 +13,7 @@ from staged_offline import command, ENVS, VIEW
 from prepare_inputs import ROOT
 
 
-def bind(system, workspace, native_argv, sockets, local_token, seed):
+def bind(system, workspace, native_argv, sockets, local_token, seed, model=None):
     python = '/env/bin/python'
     argv = [python, '/runtime-tools/transport_bootstrap.py', *native_argv]
     args = writable_command(system, workspace, argv)
@@ -24,7 +24,7 @@ def bind(system, workspace, native_argv, sockets, local_token, seed):
         if name not in ('model', 'literature', 'egress') or not stat.S_ISSOCK(Path(path).stat().st_mode):
             raise ValueError('expected selected Unix transport socket')
         extra += ['--ro-bind', str(path), '/transport/'+name+'.sock']
-    env = model_environment(system, 'http://127.0.0.1:18080/v1', local_token)
+    env = model_environment(system, 'http://127.0.0.1:18080/v1', local_token, **({'model': model} if model else {}))
     if system == 'arbor':
         config_path = Path(workspace)/'project/research_config.yaml'
         config = json.loads(config_path.read_text())
@@ -40,6 +40,7 @@ def bind(system, workspace, native_argv, sockets, local_token, seed):
     if 'literature' in sockets:
         env['S2_API_KEY'] = 'managed-by-local-gateway'
     if 'egress' in sockets:
+        env.update(HF_HUB_OFFLINE='0', TRANSFORMERS_OFFLINE='0', HF_HOME='/work/hf-home')
         env.update(HTTP_PROXY='http://127.0.0.1:18082', HTTPS_PROXY='http://127.0.0.1:18082',
                    http_proxy='http://127.0.0.1:18082', https_proxy='http://127.0.0.1:18082',
                    NO_PROXY='127.0.0.1,localhost', no_proxy='127.0.0.1,localhost')
