@@ -34,11 +34,11 @@ def model_environment(system, base_url, local_token, model=MODEL):
     elif system!='arbor':raise ValueError('unknown system')
     return env
 
-def arbor_config(brief,base_url,local_token):
+def arbor_config(brief,base_url,local_token,model=MODEL):
     validate_brief(brief)
     # CoordinatorConfig.meta_model is TOP LEVEL, not llm.meta_model.
-    return {'task':brief,'meta_model':MODEL,
-            'llm':{'provider':'litellm','model':MODEL,'base_url':endpoint(base_url),'api_key':local_token}}
+    return {'task':brief,'meta_model':model,
+            'llm':{'provider':'litellm','model':model,'base_url':endpoint(base_url),'api_key':local_token}}
 
 def aris_argv(brief,options,model=MODEL):
     validate_brief(brief)

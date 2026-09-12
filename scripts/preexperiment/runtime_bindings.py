@@ -28,7 +28,9 @@ def bind(system, workspace, native_argv, sockets, local_token, seed, model=None)
     if system == 'arbor':
         config_path = Path(workspace)/'project/research_config.yaml'
         config = json.loads(config_path.read_text())
-        config['llm'].update(base_url='http://127.0.0.1:18080/v1', api_key=local_token, llm_timeout=1200.0)
+        config['llm'].update(base_url='http://127.0.0.1:18080/v1', api_key=local_token)
+        if model != 'deepseek-flash':
+            config['llm']['llm_timeout'] = 1200.0
         config_path.write_text(json.dumps(config, indent=2)+'\n')
     if system == 'arbor':
         env.update(GIT_AUTHOR_NAME='Arbor', GIT_AUTHOR_EMAIL='arbor@localhost',

@@ -2,12 +2,12 @@
   "schema_version": 1,
   "system": "arbor",
   "provider": "deepseek",
-  "status": "deferred",
-  "model": "FILL_MODEL_ID",
+  "status": "prepared",
+  "model": "deepseek-flash",
   "base_url": "https://api.deepseek.com",
-  "api_key_env": "DEEPSEEK_API_KEY",
+  "api_key_env": "AUTORESEARCH_API_KEY",
   "support": "native",
   "adapter": null,
-  "native_settings": {"provider": "openai-chat", "reasoning_effort": "FILL_AFTER_MODEL_SELECTION"},
+  "native_settings": {"provider": "litellm", "reasoning_effort": "high"},
   "execution": {"budget_policy": "no_hard_cap", "record_usage": true, "record_failed_requests": true}
 }

@@ -61,7 +61,7 @@ def stage(ledger, system, workspace):
         (project/'bfts_config.yaml').write_text(config)
     elif system == 'arbor':
         from arbor_paper_template import INSTRUCTION
-        config = arbor_config(brief, 'http://127.0.0.1:18080/v1', 'offline-placeholder-not-a-provider-key')
+        config = arbor_config(brief, 'http://127.0.0.1:18080/v1', 'offline-placeholder-not-a-provider-key', ledger.get('run_model', MODEL))
         config['task'] = brief + '\n\n' + INSTRUCTION
         shutil.copytree(VIEW/'common/native-latex', project/'paper')
         (project/'PAPER_REQUIREMENTS.md').write_text(INSTRUCTION)
