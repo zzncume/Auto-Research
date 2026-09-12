@@ -39,6 +39,10 @@ def bind(system, workspace, native_argv, sockets, local_token, seed, model=None)
     if system in ('ai-scientist-v1', 'ai-scientist-v2'):
         env.update(AUTORESEARCH_NATIVE_SYSTEM=system, AUTORESEARCH_LLM_TIMEOUT_SECONDS='1200',
                    PYTHONPATH='/runtime-tools:/source')
+    if system == 'arbor' and model == 'deepseek-flash':
+        env.update(AUTORESEARCH_NATIVE_SYSTEM='arbor',
+                   AUTORESEARCH_ARBOR_DEEPSEEK_COMPACTION_COMPAT='1',
+                   PYTHONPATH='/runtime-tools:/source')
     if 'literature' in sockets:
         env['S2_API_KEY'] = 'managed-by-local-gateway'
     if 'egress' in sockets:

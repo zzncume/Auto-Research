@@ -3,3 +3,8 @@ import os
 if os.environ.get('AUTORESEARCH_NATIVE_SYSTEM') in ('ai-scientist-v1', 'ai-scientist-v2'):
     from llm_timeout_compat import install
     install()
+
+if (os.environ.get('AUTORESEARCH_NATIVE_SYSTEM') == 'arbor'
+        and os.environ.get('AUTORESEARCH_ARBOR_DEEPSEEK_COMPACTION_COMPAT') == '1'):
+    from arbor_deepseek_compat import install
+    install()
